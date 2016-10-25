@@ -87,7 +87,7 @@ proc ::toclbox::text::Keys { {keys {}} } {
 
 proc ::toclbox::text::Defaults { txt {keys {}}} {
     array set CURRENT $keys
-    foreach s [set [namespace parent]::common::-subst] {
+    foreach s [set [namespace parent]::common::vars::-subst] {
 	foreach separator ${vars::-separator} {
 	    # Generate a regular expression that will match strings
 	    # enclosed by the substitutions characters with one of the
