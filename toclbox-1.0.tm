@@ -2,12 +2,12 @@ package require Tcl 8.5
 
 namespace eval ::toclbox {}
 
+# Require all packages that are only 8.5 dependent.
 package require toclbox::config
 package require toclbox::control
 package require toclbox::log
 package require toclbox::options
 package require toclbox::text
-
 
 # This provides a quicker to grasp API for the whole of toclbox, without digging
 # into the different packages at hand. It is largely inspired from the old utils
@@ -37,6 +37,8 @@ package require toclbox::text
 ::toclbox::control::alias ::toclbox::lread ::toclbox::config::read 1
 
 
+# Add 8.6 specific packages. This should be of less importance as 8.6 is stable
+# and mature. But still...
 if { [catch {package require Tcl 8.6} ver] == 0 } {
     package require toclbox::exec
     package require toclbox::sys
@@ -50,6 +52,8 @@ if { [catch {package require Tcl 8.6} ver] == 0 } {
     ::toclbox::control::alias ::toclbox::deadly ::toclbox::sys::deadly 1    
 }
 
+# Export all lower-cased commands and make an ensemble to ease access to
+# everything from the outside.
 namespace eval ::toclbox {
     namespace export {[a-z]*}
     namespace ensemble create
