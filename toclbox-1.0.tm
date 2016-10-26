@@ -36,6 +36,10 @@ package require toclbox::text
 ::toclbox::control::alias ::toclbox::lscan ::toclbox::config::scan 1
 ::toclbox::control::alias ::toclbox::lread ::toclbox::config::read 1
 
+::toclbox::control::alias ::toclbox::fullpath ::toclbox::common::fullpath 1
+::toclbox::control::alias ::toclbox::mapper ::toclbox::common::mapper 1
+::toclbox::control::alias ::toclbox::defaults ::toclbox::common::defaults 1
+
 
 # Add 8.6 specific packages. This should be of less importance as 8.6 is stable
 # and mature. But still...
