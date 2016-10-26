@@ -1,0 +1,97 @@
+if {"::tcltest" ni [namespace children]} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
+package require toclbox::common
+
+test common-1.1 {Accessing program fullpath} -match regexp -body {
+    set ::argv0 /test
+    ::toclbox::common::fullpath
+} -result {^([A-Z]:)?/test}
+
+test common-2.1 {Forcing program fullpath} -body {
+    ::toclbox::common::fullpath /test.me
+} -result {/test.me}
+
+test common-3.1 {Mapping of keys} -body {
+    ::toclbox::common::mapper "" key1 value1 key2 value2
+} -result {%key1% value1 @key1@ value1 ~key1~ value1 %key2% value2 @key2@ value2 ~key2~ value2}
+
+test common-4.1 {Mapping of keys on list variable} -body {
+    set l {}
+    ::toclbox::common::mapper l key1 value1 key2 value2
+    set l
+} -result {%key1% value1 @key1@ value1 ~key1~ value1 %key2% value2 @key2@ value2 ~key2~ value2}
+
+test common-5.1 {Proper return value whan mapping of keys on list variable} -body {
+    set l {}
+    ::toclbox::common::mapper l key1 value1 key2 value2
+} -result {%key1% value1 @key1@ value1 ~key1~ value1 %key2% value2 @key2@ value2 ~key2~ value2}
+
+test common-6.1 {Mapping of empty keys} -body {
+    ::toclbox::common::mapper ""
+} -result {}
+
+test common-7.1 {Appending of keys} -body {
+    set l [list a b]
+    ::toclbox::common::mapper l key1 value1
+    set l
+} -result {a b %key1% value1 @key1@ value1 ~key1~ value1}
+
+test common-8.1 {Testing defaults getter for all} -body {
+    set l [::toclbox::common::defaults ::toclbox::common]
+    set vars [info vars ::toclbox::common::vars::-*]
+    expr {[llength $l]==2*[llength $vars]}
+} -result {1}
+
+test common-9.1 {Testing defaults getter for one} -body {
+    set d [::toclbox::common::defaults ::toclbox::common]
+    set k [lindex [dict keys $d] 0]
+    set v [dict get $d $k]
+    string equal $v [::toclbox::common::defaults ::toclbox::common $k]
+} -result {1}
+
+test common-10.1 {Testing setting one existing option} -body {
+    set d [::toclbox::common::defaults ::toclbox::common]
+    set k [lindex [dict keys $d] 0];  # Pick an option
+    set v [dict get $d $k]
+
+    ::toclbox::common::defaults ::toclbox::common $k ""
+    set ok [string equal "" [set ::toclbox::common::vars::$k]]
+    set ::toclbox::common::vars::$k $v; # Restore things, do it directly inside
+                                        # the vars namespace as we might have
+                                        # broken behaviour through setting
+                                        # anything to an empty string...
+    
+    set ok
+} -result {1}
+
+test common-11.1 {Testing unknown option} -body {
+    ::toclbox::common::defaults ::toclbox::common -tagada
+} -returnCodes {error} -match {glob} -result {*no such variable}
+
+test common-12.1 {Testing getter without marker} -body {
+    set d [::toclbox::common::defaults ::toclbox::common]
+    set k [lindex [dict keys $d] 0]
+    set v [dict get $d $k]
+    string equal $v [::toclbox::common::defaults ::toclbox::common [string trimleft $k -]]
+} -result {1}
+
+test common-13.1 {Testing setting one existing option without marker} -body {
+    set d [::toclbox::common::defaults ::toclbox::common]
+    set k [lindex [dict keys $d] 0];  # Pick an option
+    set v [dict get $d $k]
+
+    ::toclbox::common::defaults ::toclbox::common [string trimleft $k -] ""
+    set ok [string equal "" [set ::toclbox::common::vars::$k]]
+    set ::toclbox::common::vars::$k $v; # Restore things, do it directly inside
+                                        # the vars namespace as we might have
+                                        # broken behaviour through setting
+                                        # anything to an empty string...
+    
+    set ok
+} -result {1}
+
+cleanupTests
