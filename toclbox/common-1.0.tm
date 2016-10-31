@@ -88,4 +88,14 @@ proc ::toclbox::common::defaults { ns args } {
     }
 }
 
+
+proc ::toclbox::common::pdict {dict {pattern *} {channel "stdout"}} {
+    # Shamelessly stolen from http://wiki.tcl.tk/23526
+   set longest [tcl::mathfunc::max 0 {*}[lmap key [dict keys $dict $pattern] {string length $key}]]
+   dict for {key value} $dict {
+      puts $channel [format "%-${longest}s = %s" $key $value]
+   }
+}
+
+
 package provide toclbox::common 1.0

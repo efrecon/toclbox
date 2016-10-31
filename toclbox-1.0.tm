@@ -40,6 +40,7 @@ package require toclbox::network
 ::toclbox::control::alias ::toclbox::fullpath ::toclbox::common::fullpath 1
 ::toclbox::control::alias ::toclbox::mapper ::toclbox::common::mapper 1
 ::toclbox::control::alias ::toclbox::defaults ::toclbox::common::defaults 1
+::toclbox::control::alias ::toclbox::pdict ::toclbox::common::pdict 1
 
 ::toclbox::control::alias ::toclbox::https ::toclbox::network::https 1
 
