@@ -8,6 +8,7 @@ package require toclbox::control
 package require toclbox::log
 package require toclbox::options
 package require toclbox::text
+package require toclbox::network
 
 # This provides a quicker to grasp API for the whole of toclbox, without digging
 # into the different packages at hand. It is largely inspired from the old utils
@@ -40,6 +41,7 @@ package require toclbox::text
 ::toclbox::control::alias ::toclbox::mapper ::toclbox::common::mapper 1
 ::toclbox::control::alias ::toclbox::defaults ::toclbox::common::defaults 1
 
+::toclbox::control::alias ::toclbox::https ::toclbox::network::https 1
 
 # Add 8.6 specific packages. This should be of less importance as 8.6 is stable
 # and mature. But still...
