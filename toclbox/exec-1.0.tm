@@ -77,19 +77,31 @@ proc ::toclbox::exec::POpen4 { args } {
 #
 # Side Effects:
 #       Read lines, outputs
-proc ::toclbox::exec::LineRead { c fd } {
+proc ::toclbox::exec::LineRead { c fd {chunks -1}} {
     upvar \#0 $c CMD
 
-    set line [gets $CMD($fd)]
+    if { $chunks < 0 } {
+        set line [gets $CMD($fd)]
+    } else {
+        set line [read $CMD($fd) $chunks]
+    }
 
     # Respect -keepblanks and output or accumulate in result
     if { ( !$CMD(keep) && [string trim $line] ne "") || $CMD(keep) } {
 	if { $CMD(back) } {
 	    if { ( $CMD(outerr) && $fd eq "stderr" ) || $fd eq "stdout" } {
-		lappend CMD(result) $line
+                if { $chunks < 0 } {
+                    lappend CMD(result) $line
+                } else {
+                    append CMD(result) $line
+                }
 	    }
 	} elseif { $CMD(relay) } {
-	    puts $fd $line
+            if { $chunks < 0 } {
+                puts $fd $line
+            } else {
+                puts -nonewline $fd $line
+            }
 	}
 
         if { [llength $CMD(capture)] } {
@@ -107,6 +119,9 @@ proc ::toclbox::exec::LineRead { c fd } {
 	if { ( $CMD(stdout) eq "" || [fileevent $CMD(stdout) readable] eq "" ) \
 		 && ( $CMD(stderr) eq "" || [fileevent $CMD(stderr) readable] eq "" ) } {
 	    set CMD(done) 1
+            if { [llength $CMD(finished)] } {
+                Done $c
+            }
 	}
     }
 }
@@ -125,13 +140,35 @@ proc ::toclbox::exec::Signal { c signal through self } {
         debug DEBUG "Passing signal $signal through to $CMD(pid)"
         catch {::kill $signal $CMD(pid)}
     }
-    
+
     if { $self } {
         debug DEBUG "Executing default behaviour for $signal on ourselves"
         ::signal default $signal
         catch {::kill $signal [pid]}
         ::signal trap $signal [namespace code [list Signal $c %S $through $self]]
     }
+}
+
+
+proc ::toclbox::exec::Done { c } {
+    upvar \#0 $c CMD
+
+    debug TRACE "Command $CMD(command) has ended, cleaning up and returning"
+    catch {close $CMD(stdin)}
+    catch {close $CMD(stdout)}
+    catch {close $CMD(stderr)}
+
+    # Collect and possibly mediate result
+    set res $CMD(result)
+    if { [llength $CMD(finished)] } {
+        if { [catch {eval [linsert $CMD(finished) end $CMD(pid) $res]} err] } {
+            debug WARN "Could not forward line to capturing command: $err"
+        }
+    }
+    
+    # Total cleanup
+    unset $c
+    return $res
 }
 
 
@@ -163,9 +200,12 @@ proc ::toclbox::exec::run { args } {
     set CMD(back) [parse opts -return]
     set CMD(outerr) [parse opts -stderr]
     set CMD(relay) [parse opts -raw]
-    parse opts -capture CMD(capture) ""
+    set CMD(binary) [parse opts -binary]
+    parse opts -capture CMD(capture) [list]
+    parse opts -done CMD(finished) [list]
     set CMD(done) 0
     set CMD(result) {}
+    if { $CMD(relay) } { set CMD(keep) 1 };   # Force keeping blanks on raw
 
     # Kick-off the command and wait for its end
     if { [lsearch [split [::platform::generic] -] win32] >= 0 } {
@@ -177,10 +217,20 @@ proc ::toclbox::exec::run { args } {
         set CMD(stderr) ""
         set CMD(stdout) [open $pipe]
         set CMD(pid) [pid $CMD(stdout)]
-        fileevent $CMD(stdout) readable [namespace code [list LineRead $c stdout]]
+        if { $CMD(binary) } {
+            fconfigure $CMD(stdout) -encoding binary -translation binary
+            fileevent $CMD(stdout) readable [namespace code [list LineRead $c stdout 16384]]
+        } else {
+            fileevent $CMD(stdout) readable [namespace code [list LineRead $c stdout]]            
+        }
     } else {
         lassign [POpen4 {*}$args] CMD(pid) CMD(stdin) CMD(stdout) CMD(stderr)
-        fileevent $CMD(stdout) readable [namespace code [list LineRead $c stdout]]
+        if { $CMD(binary) } {
+            fconfigure $CMD(stdout) -encoding binary -translation binary
+            fileevent $CMD(stdout) readable [namespace code [list LineRead $c stdout 16384]]
+        } else {
+            fileevent $CMD(stdout) readable [namespace code [list LineRead $c stdout]]            
+        }
         fileevent $CMD(stderr) readable [namespace code [list LineRead $c stderr]]
     }
     if { $vars::signalling } {
@@ -193,16 +243,13 @@ proc ::toclbox::exec::run { args } {
         }
     }
     debug TRACE "Started $CMD(command), running at $CMD(pid)"
-    vwait ${c}(done);   # Wait for command to end
+    if { [llength $CMD(finished)] } {
+        return $CMD(pid)
+    } else {
+        vwait ${c}(done);   # Wait for command to end
 
-    debug TRACE "Command $CMD(command) has ended, cleaning up and returning"
-    catch {close $CMD(stdin)}
-    catch {close $CMD(stdout)}
-    catch {close $CMD(stderr)}
-
-    set res $CMD(result)
-    unset $c
-    return $res
+        return [Done $c]    
+    }
 }
 
 
