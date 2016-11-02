@@ -1,0 +1,59 @@
+if {"::tcltest" ni [namespace children]} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
+package require toclbox::text
+
+test text-1.1 {Resolving HOME} -body {
+    ::toclbox::text::resolve "%HOME%"
+} -result "$::env(HOME)"
+
+test text-2.1 {Resolving several references to HOME} -body {
+    ::toclbox::text::resolve "Is %HOME% your ~HOME~?"
+} -result "Is $::env(HOME) your $::env(HOME)?"
+
+test text-3.1 {Resolving HOME and additional keys} -body {
+    ::toclbox::text::resolve "Is %HOME% your ~MAISON~ and your ~RESIDENCE~?" [list MAISON home RESIDENCE residence]
+} -result "Is $::env(HOME) your home and your residence?"
+
+test text-4.1 {Resolving inexisting key to defaults} -body {
+    ::toclbox::text::resolve "%I3X1st1ng|some value%"
+} -result "some value"
+
+test text-5.1 {Resolving key when it is set instead of its default value} -body {
+    ::toclbox::text::resolve "%I3X1st1ng|some value%" [list I3X1st1ng test]
+} -result "test"
+
+test text-6.1 {Using markers in key name} -body {
+    ::toclbox::text::resolve "%I3X1s~1ng|some value%"
+} -result "some value"
+
+test text-7.1 {Using default separators in defaults} -body {
+    ::toclbox::text::resolve "%I3X1st1ng|/a/path%"
+} -result "/a/path"
+
+test text-8.1 {Failing to resolve inexisting key} -body {
+    ::toclbox::text::resolve "%I3X1st1ng%"
+} -result "%I3X1st1ng%"
+
+test text-9.1 {Testing program-dependent keys} -body {
+    ::toclbox::text::resolve "%progdir%/~prgname~"
+} -result "[file normalize [file dirname $::argv0]]/[file rootname [file tail $::argv0]]"
+
+
+test text-10.1 {Testing split protection} -body {
+    ::toclbox::text::split {a/path/to\/test/thi\/ngs/out} /
+} -result {a path to/test thi/ngs out}
+
+test text-11.1 {Testing leading separator in split} -body {
+    ::toclbox::text::split {/a/path/to\/test/thi\/ngs/out} /
+} -result {{} a path to/test thi/ngs out}
+
+test text-12.1 {Testing ending separator in split} -body {
+    ::toclbox::text::split {a/path/to\/test/thi\/ngs/out/} /
+} -result {a path to/test thi/ngs out {}}
+
+
+cleanupTests
