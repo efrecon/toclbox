@@ -10,7 +10,9 @@ namespace eval ::toclbox::text {
     }
     namespace export {[a-z]*}
     namespace import [namespace parent]::log::debug
-    namespace import [namespace parent]::common::mapper [namespace parent]::common::fullpath
+    namespace import [namespace parent]::common::mapper \
+			[namespace parent]::common::fullpath \
+			[namespace parent]::common::defaults
     namespace ensemble create -command ::tocltxt
 }
 
@@ -61,7 +63,7 @@ proc ::toclbox::text::resolve { txt { keys {} } } {
 
 
 proc ::toclbox::text::Keys { {keys {}} } {
-    global env tcl_platform argv0
+    global env tcl_platform
     
     set mapper {}
     foreach {k v} [array get tcl_platform] {
@@ -87,7 +89,7 @@ proc ::toclbox::text::Keys { {keys {}} } {
 
 proc ::toclbox::text::Defaults { txt {keys {}}} {
     array set CURRENT $keys
-    foreach s [set [namespace parent]::common::vars::-subst] {
+    foreach s [defaults [namespace parent]::common -subst] {
 	foreach separator ${vars::-separator} {
 	    # Generate a regular expression that will match strings
 	    # enclosed by the substitutions characters with one of the
@@ -98,7 +100,7 @@ proc ::toclbox::text::Defaults { txt {keys {}}} {
 	    # the default value below.
 	    set rx "${s}\(.*?\)\\${separator}\(.*?\)${s}"
 	    
-	    if { [llength [split $txt $separator]] <= 2 } {
+	    if { [llength [::split $txt $separator]] <= 2 } {
 		# Replace all occurences of what looks like defaulting
 		# instructions to the default that they contain.
 		while 1 {
@@ -131,7 +133,7 @@ proc ::toclbox::text::Defaults { txt {keys {}}} {
 
 proc ::toclbox::text::sed {script input} {
     set sep [string index $script 1]
-    foreach {cmd from to flag} [split $script $sep] break
+    foreach {cmd from to flag} [::split $script $sep] break
     switch -- $cmd {
 	"s" {
 	    set cmd regsub
@@ -178,7 +180,7 @@ proc ::toclbox::text::sed {script input} {
 #
 # Arguments:
 #	str	Strint to split
-#	seps	Separtors to use for split
+#	seps	Separators to use for split
 #	protect	Protecting character to avoid splitting on next char.
 #
 # Results:
@@ -186,11 +188,11 @@ proc ::toclbox::text::sed {script input} {
 #
 # Side Effects:
 #       None.
-proc ::toclbox::text::psplit { str seps {protect "\\"}} {
+proc ::toclbox::text::split { str seps {protect "\\"}} {
     set out [list]
     set prev ""
     set current ""
-    foreach c [split $str ""] {
+    foreach c [::split $str ""] {
 	if { [string first $c $seps] >= 0 } {
 	    if { $prev eq $protect } {
 		set current [string range $current 0 end-1]
@@ -206,6 +208,8 @@ proc ::toclbox::text::psplit { str seps {protect "\\"}} {
 	}
     }
     
+    # XXX: Force out empty current if we've just seen a separator (meaning
+    # separator at the end...)
     if { $current ne "" } {
 	lappend out $current
     }
@@ -227,7 +231,7 @@ proc ::toclbox::text::human { val {max 20} } {
 	return ${val}${ellipsis}
     } else {
 	set hex "(binary) "
-	foreach c [split $val ""] {
+	foreach c [::split $val ""] {
 	    binary scan $c c1 num
 	    set num [expr { $num & 0xff }]
 	    append hex [format "%.2X " $num]
