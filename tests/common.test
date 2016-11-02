@@ -94,4 +94,30 @@ test common-13.1 {Testing setting one existing option without marker} -body {
     set ok
 } -result {1}
 
+test common-14-1 {Testing pretty-printing of dictionary } -body {
+    ::toclbox::common::pdict [dict create a 1 abc 2]
+} -output {a   = 1
+abc = 2
+}
+
+test common-15-1 {Testing pretty-printing of empty dict} -body {
+    ::toclbox::common::pdict [dict create]
+} -output {}
+
+test common-16-1 {Testing pretty-printing of selected keys of dictionary } -body {
+    ::toclbox::common::pdict [dict create a 1 abc 2 b 3] a*
+} -output {a   = 1
+abc = 2
+}
+
+test common-17-1 {Testing pretty-printing of dictionary to string} -body {
+    ::toclbox::common::pdict [dict create a 1 abc 2] * ""
+} -result "a   = 1\nabc = 2\n"
+
+test common-18-1 {Testing pretty-printing of no keys} -body {
+    ::toclbox::common::pdict [dict create a 1 abc 2 b 3] ""
+} -output {}
+
+
+
 cleanupTests
