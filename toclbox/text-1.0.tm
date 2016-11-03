@@ -100,7 +100,7 @@ proc ::toclbox::text::Defaults { txt {keys {}}} {
 	    # the default value below.
 	    set rx "${s}\(.*?\)\\${separator}\(.*?\)${s}"
 	    
-	    if { [llength [::split $txt $separator]] <= 2 } {
+	    if { [llength [::split $txt $separator]] >= 2 } {
 		# Replace all occurences of what looks like defaulting
 		# instructions to the default that they contain.
 		while 1 {
