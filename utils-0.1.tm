@@ -30,7 +30,7 @@ namespace eval ::utils {}
 
 ::toclbox::control::alias ::utils::resolve ::toclbox::text::resolve 1
 ::toclbox::control::alias ::utils::sed ::toclbox::text::sed 1
-::toclbox::control::alias ::utils::psplit ::toclbox::text::psplit 1
+::toclbox::control::alias ::utils::psplit ::toclbox::text::split 1
 
 ::toclbox::control::alias ::utils::lclean ::toclbox::config::clean 1
 ::toclbox::control::alias ::utils::lscan ::toclbox::config::scan 1
