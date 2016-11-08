@@ -55,5 +55,33 @@ test text-12.1 {Testing ending separator in split} -body {
     ::toclbox::text::split {a/path/to\/test/thi\/ngs/out/} /
 } -result {a path to/test thi/ngs out {}}
 
+test text-13.1 {Testing split of empty string} -body {
+    ::toclbox::text::split "" /
+} -result {}
+
+test text-14.1 {Testing split of separator} -body {
+    ::toclbox::text::split "/" /
+} -result {{} {}}
+
+test text-14.1 {Testing split on empty separator} -body {
+    ::toclbox::text::split "abc" ""
+} -result {a b c}
+
+test text-15.1 {Testing ending on protected separator} -body {
+    ::toclbox::text::split {abc\/} /
+} -result {abc/}
+
+
+test text-20.1 {Testing human output of small string} -body {
+    ::toclbox::text::human "human"
+} -result "human"
+
+test text-21.1 {Testing human output of mixed chars} -body {
+    ::toclbox::text::human "\thuman\n"
+} -result ".human. (hex: 09 68 75 6D 61 6E 0A)"
+
+test text-22.1 {Testing ellipsis of long string} -body {
+    ::toclbox::text::human "This is a very long sentence that is completely meaningless, but long enough to be shortened when printed out."
+} -result "This is a very long (..)"
 
 cleanupTests

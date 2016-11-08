@@ -7,6 +7,7 @@ namespace eval ::toclbox::text {
     namespace eval vars {
 	variable -resolve     10
 	variable -separator   {/ |}
+        variable -ellipsis    "(..)"
     }
     namespace export {[a-z]*}
     namespace import [namespace parent]::log::debug
@@ -87,6 +88,8 @@ proc ::toclbox::text::Keys { {keys {}} } {
 }
 
 
+# Kept for posterity, but this implementation does not work (even though it is
+# believed to be quicker)
 proc ::toclbox::text::Defaults { txt {keys {}}} {
     array set CURRENT $keys
     foreach s [defaults [namespace parent]::common -subst] {
@@ -127,6 +130,59 @@ proc ::toclbox::text::Defaults { txt {keys {}}} {
 	    }
 	}
     }
+    return $txt
+}
+
+
+proc ::toclbox::text::Defaults { txt {keys {}}} {
+    array set CURRENT $keys
+    foreach s [defaults [namespace parent]::common -subst] {
+        set start 0
+        while {1} {
+            # Look for next occurrence of the substitution marker
+            set start [string first $s $txt $start]
+            if { $start < 0 } {
+                break;     # Not found, we are done for this time.
+            }
+            
+            # Look for the ending marker.
+            set end [string first $s $txt [expr {$start + 1}]]
+            if { $end < 0 } {
+                break;  # Not found, we are done for this time (but this is a bit
+                        # suspect.)
+            }
+            
+            set order [list]
+            foreach sep ${vars::-separator} {
+                set idx [string first $sep $txt [expr {$start + 1}]]
+                if { $idx >= 0 && $idx < $end } {
+                    lappend order [list $sep $idx]
+                }
+            }
+            
+            if { [llength $order] } {
+                # Arrange for sep and idx to contain the separator and the index
+                # that are closest from the start
+                lassign [lindex [lsort -index 1 -increasing -integer $order] 0] sep idx
+                set k [string range $txt [expr {$start+1}] [expr {$idx-1}]]
+                if { [lsearch $keys $k] >= 0 } {
+                    set txt [string replace $txt $start $end $CURRENT($k)]
+                } else {
+                    set dft [string range $txt [expr {$idx+1}] [expr {$end-1}]]
+                    set txt [string replace $txt $start $end $dft]
+                }
+            } else {
+                set k [string range $txt [expr {$start+1}] [expr {$end-1}]]
+                if { [lsearch $keys $k] >= 0 } {
+                    set txt [string replace $txt $start $end $CURRENT($k)]
+                } else {
+                    set start $end;   # Couldn't find anything, jump to next
+                }
+            }
+            
+        }
+    }
+    
     return $txt
 }
 
@@ -189,6 +245,14 @@ proc ::toclbox::text::sed {script input} {
 # Side Effects:
 #       None.
 proc ::toclbox::text::split { str seps {protect "\\"}} {
+    # Fix special cases of empty string and empty separators.
+    if { $str eq "" } {
+        return $str
+    }
+    if { $seps eq "" } {
+        return [::split $str ""]
+    }
+    
     set out [list]
     set prev ""
     set current ""
@@ -208,11 +272,7 @@ proc ::toclbox::text::split { str seps {protect "\\"}} {
 	}
     }
     
-    # XXX: Force out empty current if we've just seen a separator (meaning
-    # separator at the end...)
-    if { $current ne "" } {
-	lappend out $current
-    }
+    lappend out $current
 
     return $out
 }
@@ -223,20 +283,29 @@ proc ::toclbox::text::human { val {max 20} } {
     if { $max > 0 } {
 	if { [string length $val] > $max } {
 	    set val [string range $val 0 [expr {$max-1}]]
-	    set ellipsis "..."
+	    set ellipsis ${vars::-ellipsis}
 	}
     }
     
     if { [string is print $val] } {
 	return ${val}${ellipsis}
     } else {
-	set hex "(binary) "
+	set hex ""
+        foreach c [::split $val ""] {
+            if { [string is print $c] } {
+                append hex $c
+            } else {
+                append hex .
+            }
+        }
+        append hex " (hex:"
 	foreach c [::split $val ""] {
 	    binary scan $c c1 num
 	    set num [expr { $num & 0xff }]
-	    append hex [format "%.2X " $num]
+	    append hex [format " %.2X" $num]
 	}
-	return [string trim $hex]${ellipsis}
+        append hex ")"
+	return ${hex}${ellipsis}
     }
     
     return ""
