@@ -18,6 +18,7 @@ package require toclbox::network
 ::toclbox::control::alias ::toclbox::pushopt ::toclbox::options::push 1
 ::toclbox::control::alias ::toclbox::chkopt ::toclbox::options::check 1
 
+::toclbox::control::alias ::toclbox::log ::toclbox::log::debug 1
 ::toclbox::control::alias ::toclbox::debug ::toclbox::log::debug 1
 ::toclbox::control::alias ::toclbox::dbgfmt ::toclbox::log::format 1
 ::toclbox::control::alias ::toclbox::logger ::toclbox::log::logger 1
