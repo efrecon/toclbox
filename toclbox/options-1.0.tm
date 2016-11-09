@@ -64,6 +64,7 @@ proc ::toclbox::options::parse {_argv name args } {
     array set OPTS {
 	-value  ""
 	-option ""
+        -header "-"
     }
     if { [string index [lindex $args 0] 0] ne "-" } {
 	# Backward compatibility with old code! arguments that follow the name
@@ -88,6 +89,9 @@ proc ::toclbox::options::parse {_argv name args } {
 	upvar [UpVar] $OPTS(-option) opt
     }
     set opt "";  # Default is no option was extracted
+    if { $OPTS(-header) ne "" } {
+        set name $OPTS(-header)[string trimleft $name $OPTS(-header)]
+    }
     set pos [lsearch -regexp $argv ^$name]
     if {$pos>=0} {
 	set to $pos
