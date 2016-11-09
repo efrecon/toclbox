@@ -36,4 +36,6 @@ namespace eval ::utils {}
 ::toclbox::control::alias ::utils::lscan ::toclbox::config::scan 1
 ::toclbox::control::alias ::utils::lread ::toclbox::config::read 1
 
+::utils::debug DEBUG "Using 'utils' shim for backwards compatibility"
+
 package provide utils 0.1
