@@ -1,0 +1,78 @@
+if {"::tcltest" ni [namespace children]} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
+package require toclbox::options
+
+test text-1.1 {Parsing bool option} -body {
+    set opts [list -oneopt -another value -athird itsvalue]
+    ::toclbox::options::parse opts -oneopt
+} -result "1"
+
+test text-2.1 {Parsing an option} -body {
+    set opts [list -oneopt -another value -athird itsvalue]
+    ::toclbox::options::parse opts -another -value myvar
+    set myvar
+} -result "value"
+
+test text-2.2 {Finding an option} -body {
+    set opts [list -oneopt -another value -athird itsvalue]
+    ::toclbox::options::parse opts -another
+} -result 1
+
+test text-3.1 {Parsing an inexisting option} -match glob -body {
+    set opts [list -oneopt -another value -athird itsvalue]
+    ::toclbox::options::parse opts -inexisting -value anothervar
+    set anothervar
+} -returnCodes 1 -result {can't read*}
+
+test text-4.1 {Not finding an inexisting option} -body {
+    set opts [list -oneopt -another value -athird itsvalue]
+    ::toclbox::options::parse opts -inexisting
+} -result 0
+
+test text-5.1 {Parsing an inexisting option, getting default} -body {
+    set opts [list -oneopt -another value -athird itsvalue]
+    ::toclbox::options::parse opts -inexisting -default "something" -value myvar
+    set myvar
+} -result "something"
+
+test text-6.1 {Parsing an option, old style} -body {
+    set opts [list -oneopt -another value -athird itsvalue]
+    ::toclbox::options::parse opts -another myvar
+    set myvar
+} -result "value"
+
+test text-7.1 {Parsing an inexisting option, getting default, old style} -body {
+    set opts [list -oneopt -another value -athird itsvalue]
+    ::toclbox::options::parse opts -inexisting myvar "something"
+    set myvar
+} -result "something"
+
+test text-8.1 {Finding an incomplete option} -body {
+    set opts [list -oneopt -another value -athird itsvalue]
+    ::toclbox::options::parse opts -anot
+} -result 1
+
+test text-9.1 {Getting the first incomplete option} -body {
+    set opts [list -oneopt -another value -athird itsvalue]
+    ::toclbox::options::parse opts -a -option which
+    set which
+} -result -another
+
+test text-10.1 {Finding an option, but omitting the leading dash} -body {
+    set opts [list -oneopt -another value -athird itsvalue]
+    ::toclbox::options::parse opts another -option parsed
+    set parsed
+} -result -another
+
+test text-11.1 {Checking removal of option from list} -body {
+    set opts [list -oneopt -another value -athird itsvalue]
+    ::toclbox::options::parse opts -another
+    lsearch $opts -another
+} -result -1
+
+
+cleanupTests
