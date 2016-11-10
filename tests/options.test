@@ -75,4 +75,35 @@ test text-11.1 {Checking removal of option from list} -body {
 } -result -1
 
 
+test text-20.1 {Checking pulling of options} -body {
+    set allargs [list -oneopt -another value -athird itsvalue -- anarg anotherarg]
+    ::toclbox::options::pull allargs opts
+    set opts
+} -result {-oneopt -another value -athird itsvalue}
+
+test text-21.1 {Checking pulling of options, with no arguments} -body {
+    set allargs [list -oneopt -another value -athird itsvalue]
+    ::toclbox::options::pull allargs opts
+    set opts
+} -result {-oneopt -another value -athird itsvalue}
+
+test text-22.1 {Checking pulling of options, with no options} -body {
+    set allargs [list -- anarg anotherarg]
+    ::toclbox::options::pull allargs opts
+    set opts
+} -result {}
+
+test text-23.1 {Checking pulling of options, without double dash} -body {
+    set allargs [list -oneopt -another value -athird itsvalue -- anarg anotherarg]
+    ::toclbox::options::pull allargs opts
+    set opts
+} -result {-oneopt -another value -athird itsvalue}
+
+test text-24.1 {Checking pulling of options, with no options and without double dash} -body {
+    set allargs [list anarg anotherarg]
+    ::toclbox::options::pull allargs opts
+    set opts
+} -result {}
+
+
 cleanupTests

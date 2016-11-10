@@ -4,7 +4,7 @@ package require toclbox::log
 
 namespace eval ::toclbox::options {
     namespace eval vars {
-        
+        variable -marker "-";    # Marker character for option
     }
     namespace export {[a-z]*}
     namespace import [namespace parent]::log::debug
@@ -64,9 +64,8 @@ proc ::toclbox::options::parse {_argv name args } {
     array set OPTS {
 	-value  ""
 	-option ""
-        -header "-"
     }
-    if { [string index [lindex $args 0] 0] ne "-" } {
+    if { [string index [lindex $args 0] 0] ne ${vars::-marker} } {
 	# Backward compatibility with old code! arguments that follow the name
 	# of the option to parse are possibly the name of the variable where to
 	# store the value and possibly a default value when the option isn't
@@ -89,8 +88,8 @@ proc ::toclbox::options::parse {_argv name args } {
 	upvar [UpVar] $OPTS(-option) opt
     }
     set opt "";  # Default is no option was extracted
-    if { $OPTS(-header) ne "" } {
-        set name $OPTS(-header)[string trimleft $name $OPTS(-header)]
+    if { ${vars::-marker} ne "" } {
+        set name ${vars::-marker}[string trimleft $name ${vars::-marker}]
     }
     set pos [lsearch -regexp $argv ^$name]
     if {$pos>=0} {
@@ -118,7 +117,7 @@ proc ::toclbox::options::pull {_argv _opts} {
     upvar [UpVar] $_argv argv $_opts opts
 
     set opts {}
-    set ddash [lsearch $argv "--"]
+    set ddash [lsearch $argv [string repeat ${vars::-marker} 2]]
     if { $ddash >= 0 } {
 	# Double dash is always on the safe-side.
 	set opts [lrange $argv 0 [expr {$ddash-1}]]
@@ -126,17 +125,26 @@ proc ::toclbox::options::pull {_argv _opts} {
     } else {
 	# Otherwise, we give it a good guess, i.e. first non-dash-led
 	# argument is the start of the arguments.
-	for {set i 0} {$i < [llength $argv]} {incr i 2} {
-	    if { [string index [lindex $argv $i] 0] ne "-" } {
-		set opts [lrange $argv 0 [expr {$i-1}]]
-		set argv [lrange $argv $i end]
+        set i 0
+        while { $i < [llength $argv] } {
+            set lead [string index [lindex $argv $i] 0]
+            if { $lead eq ${vars::-marker} } {
+                set next [string index [lindex $argv [expr {$i+1}]] 0]
+                if { $next eq ${vars::-marker} } {
+                    incr i
+                } elseif { $next eq "" } {
+                    set opts $argv
+                    set argv [list]
+                    return
+                } else {
+                    incr i 2
+                }
+            } else {
 		break
-	    }
-	}
-	if { $i >= [llength $argv] } {
-	    set opts $argv
-	    set argv {}
-	}
+            }
+        }
+        set opts [lrange $argv 0 [expr {$i-1}]]
+        set argv [lrange $argv $i end]
     }
 }
 
@@ -191,7 +199,7 @@ proc ::toclbox::options::check { _ary args } {
 
     set failed {}
     foreach { opt check } $args {
-	set opt "-[string trimleft $opt -]"
+	set opt ${vars::-marker}[string trimleft $opt ${vars::-marker}]
 	if { [info exist $ARY($opt)] \
 		 && ![string is $check -strict $ARY($opt)] } {
 	    lappend failed $opt $check
