@@ -125,5 +125,28 @@ test options-33.1 {Checking missing dash} -body {
     ::toclbox::options::check A test integer
 } -result {-test integer}
 
+test options-40.1 {Checking push end and start} -body {
+    set allargs [list -oneopt -another value -athird< bingo -athird itsvalue -athird> toto]
+    catch {unset A}
+    array set A {}
+    ::toclbox::options::push allargs -athird A
+    array get A
+} -result {-athird {bingo itsvalue toto}}
+
+test options-41.1 {Checking reset with push end and start} -body {
+    set allargs [list -oneopt -another value -athird< bingo -athird itsvalue -athird therealvalue -athird> toto]
+    catch {unset A}
+    array set A {}
+    ::toclbox::options::push allargs -athird A
+    array get A
+} -result {-athird {bingo therealvalue toto}}
+
+test options-41.1 {Checking no value} -body {
+    set allargs [list -oneopt -another value -athird< bingo -athird itsvalue -athird therealvalue -athird> toto]
+    catch {unset A}
+    array set A {}
+    ::toclbox::options::push allargs -nonexisting A
+    array get A
+} -result {}
 
 cleanupTests

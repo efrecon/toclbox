@@ -175,20 +175,38 @@ proc ::toclbox::options::push { _argv opt _ary } {
     upvar $_argv argv $_ary ARY
     set modified [list]
     
+    if { ${vars::-marker} ne "" } {
+        set opt ${vars::-marker}[string trimleft $opt ${vars::-marker}]
+    }
+    set pre {}
+    set on {}
+    set post {}
+
     while { [parse argv $opt -value val -option extracted] } {
 	if { [string index $extracted end] eq "<" } {
-	    set ARY($opt) $val\ $ARY($opt)
-	    debug 5 "Prepended '$val' to argument $opt ==> '$ARY($opt)'"
+            lappend pre $val
 	    lappend modified $opt
 	} elseif { [string index $extracted end] eq ">" } {
-	    set ARY($opt) $ARY($opt)\ $val
-	    debug 5 "Appended '$val' to argument $opt ==> '$ARY($opt)'"
+            lappend post $val
 	    lappend modified $opt
 	} else {
-	    set ARY($opt) $val
-	    debug 5 "Set argument $opt to '$ARY($opt)'"
+            lappend on $val
 	    lappend modified $opt
 	}
+    }
+
+    if { [llength $modified] } {
+        set val ""
+        foreach v $on {
+            set val $v
+        }
+        foreach v $pre {
+            set val $v\ $val
+        }
+        foreach v $post {
+            append val " " $v
+        }
+        set ARY($opt) [string trim $val]
     }
     
     return [lsort -unique $modified]
