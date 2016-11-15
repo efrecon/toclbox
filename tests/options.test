@@ -6,104 +6,124 @@ if {"::tcltest" ni [namespace children]} {
 ::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
 package require toclbox::options
 
-test text-1.1 {Parsing bool option} -body {
+test options-1.1 {Parsing bool option} -body {
     set opts [list -oneopt -another value -athird itsvalue]
     ::toclbox::options::parse opts -oneopt
 } -result "1"
 
-test text-2.1 {Parsing an option} -body {
+test options-2.1 {Parsing an option} -body {
     set opts [list -oneopt -another value -athird itsvalue]
     ::toclbox::options::parse opts -another -value myvar
     set myvar
 } -result "value"
 
-test text-2.2 {Finding an option} -body {
+test options-2.2 {Finding an option} -body {
     set opts [list -oneopt -another value -athird itsvalue]
     ::toclbox::options::parse opts -another
 } -result 1
 
-test text-3.1 {Parsing an inexisting option} -match glob -body {
+test options-3.1 {Parsing an inexisting option} -match glob -body {
     set opts [list -oneopt -another value -athird itsvalue]
     ::toclbox::options::parse opts -inexisting -value anothervar
     set anothervar
 } -returnCodes 1 -result {can't read*}
 
-test text-4.1 {Not finding an inexisting option} -body {
+test options-4.1 {Not finding an inexisting option} -body {
     set opts [list -oneopt -another value -athird itsvalue]
     ::toclbox::options::parse opts -inexisting
 } -result 0
 
-test text-5.1 {Parsing an inexisting option, getting default} -body {
+test options-5.1 {Parsing an inexisting option, getting default} -body {
     set opts [list -oneopt -another value -athird itsvalue]
     ::toclbox::options::parse opts -inexisting -default "something" -value myvar
     set myvar
 } -result "something"
 
-test text-6.1 {Parsing an option, old style} -body {
+test options-6.1 {Parsing an option, old style} -body {
     set opts [list -oneopt -another value -athird itsvalue]
     ::toclbox::options::parse opts -another myvar
     set myvar
 } -result "value"
 
-test text-7.1 {Parsing an inexisting option, getting default, old style} -body {
+test options-7.1 {Parsing an inexisting option, getting default, old style} -body {
     set opts [list -oneopt -another value -athird itsvalue]
     ::toclbox::options::parse opts -inexisting myvar "something"
     set myvar
 } -result "something"
 
-test text-8.1 {Finding an incomplete option} -body {
+test options-8.1 {Finding an incomplete option} -body {
     set opts [list -oneopt -another value -athird itsvalue]
     ::toclbox::options::parse opts -anot
 } -result 1
 
-test text-9.1 {Getting the first incomplete option} -body {
+test options-9.1 {Getting the first incomplete option} -body {
     set opts [list -oneopt -another value -athird itsvalue]
     ::toclbox::options::parse opts -a -option which
     set which
 } -result -another
 
-test text-10.1 {Finding an option, but omitting the leading dash} -body {
+test options-10.1 {Finding an option, but omitting the leading dash} -body {
     set opts [list -oneopt -another value -athird itsvalue]
     ::toclbox::options::parse opts another -option parsed
     set parsed
 } -result -another
 
-test text-11.1 {Checking removal of option from list} -body {
+test options-11.1 {Checking removal of option from list} -body {
     set opts [list -oneopt -another value -athird itsvalue]
     ::toclbox::options::parse opts -another
     lsearch $opts -another
 } -result -1
 
 
-test text-20.1 {Checking pulling of options} -body {
+test options-20.1 {Checking pulling of options} -body {
     set allargs [list -oneopt -another value -athird itsvalue -- anarg anotherarg]
     ::toclbox::options::pull allargs opts
     set opts
 } -result {-oneopt -another value -athird itsvalue}
 
-test text-21.1 {Checking pulling of options, with no arguments} -body {
+test options-21.1 {Checking pulling of options, with no arguments} -body {
     set allargs [list -oneopt -another value -athird itsvalue]
     ::toclbox::options::pull allargs opts
     set opts
 } -result {-oneopt -another value -athird itsvalue}
 
-test text-22.1 {Checking pulling of options, with no options} -body {
+test options-22.1 {Checking pulling of options, with no options} -body {
     set allargs [list -- anarg anotherarg]
     ::toclbox::options::pull allargs opts
     set opts
 } -result {}
 
-test text-23.1 {Checking pulling of options, without double dash} -body {
+test options-23.1 {Checking pulling of options, without double dash} -body {
     set allargs [list -oneopt -another value -athird itsvalue -- anarg anotherarg]
     ::toclbox::options::pull allargs opts
     set opts
 } -result {-oneopt -another value -athird itsvalue}
 
-test text-24.1 {Checking pulling of options, with no options and without double dash} -body {
+test options-24.1 {Checking pulling of options, with no options and without double dash} -body {
     set allargs [list anarg anotherarg]
     ::toclbox::options::pull allargs opts
     set opts
 } -result {}
+
+test options-30.1 {Checking integer} -body {
+    set A(-test) 1
+    ::toclbox::options::check A -test integer
+} -result {}
+
+test options-31.1 {Checking non-integer} -body {
+    set A(-test) 1.4
+    ::toclbox::options::check A -test integer
+} -result {-test integer}
+
+test options-32.1 {Checking non-integer (empty)} -body {
+    set A(-test) ""
+    ::toclbox::options::check A -test integer
+} -result {-test integer}
+
+test options-33.1 {Checking missing dash} -body {
+    set A(-test) ""
+    ::toclbox::options::check A test integer
+} -result {-test integer}
 
 
 cleanupTests

@@ -200,7 +200,7 @@ proc ::toclbox::options::check { _ary args } {
     set failed {}
     foreach { opt check } $args {
 	set opt ${vars::-marker}[string trimleft $opt ${vars::-marker}]
-	if { [info exist $ARY($opt)] \
+	if { [info exist ARY($opt)] \
 		 && ![string is $check -strict $ARY($opt)] } {
 	    lappend failed $opt $check
 	}
