@@ -46,6 +46,7 @@ package require toclbox::network
 ::toclbox::control::alias ::toclbox::pdict ::toclbox::common::pdict 1
 
 ::toclbox::control::alias ::toclbox::https ::toclbox::network::https 1
+::toclbox::control::alias ::toclbox::geturl ::toclbox::network::geturl 1
 
 # Add 8.6 specific packages. This should be of less importance as 8.6 is stable
 # and mature. But still...
