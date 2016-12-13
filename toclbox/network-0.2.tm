@@ -112,6 +112,8 @@ proc ::toclbox::network::geturl { url args } {
                         -default [list]
                 if {![regexp -- $URLmatcher $url -> proto user host port srvurl]} {
                     if { $user ne "" } {
+                        lassign [split $user :] uname passwd
+                        debug INFO "Adding basic authentication for $uname"
                         # Prefer 8.6 implementation, otherwise our own...
                         if { [catch {binary encode base64 $user} b64] == 0 } {
                             lappend hdrs Authorization "Basic $b64"
@@ -123,8 +125,13 @@ proc ::toclbox::network::geturl { url args } {
                 if { [catch {::http::geturl $url -headers $hdrs {*}$args} tok] == 0} {
                     if { [::http::ncode $tok] >= 200 && [::http::ncode $tok] < 300 } {
                         set content [::http::data $tok]
+                        debug NOTICE "Fetched content of $url via HTTP, ([string length $content] byte(s))"
+                    } else {
+                        debug WARN "Could not fetch content of $url via HTTP: [::http::code $tok], [::http::error $tok]"
                     }
                     ::http::cleanup $tok
+                } else {
+                    debug WARN "Error when trying to fetch content of $url via HTTP: $tok"
                 }
             }
             "file" {
@@ -146,6 +153,7 @@ proc ::toclbox::network::geturl { url args } {
 proc ::toclbox::network::GetFile { fpath {access "r"} } {
     set content ""
     if { [catch {open $fpath $access} fd] == 0 } {
+        debug NOTICE "Got content of local file at $fpath ([string length $content] byte(s))"
         set content [read $fd]
         close $fd
     }
@@ -175,5 +183,3 @@ proc ::toclbox::network::B64en {str} {
         111100 8 111101 9 111110 + 111111 /
     } $bits]$tail    
 }
-
-package provide toclbox::network 0.1
