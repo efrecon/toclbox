@@ -2,13 +2,18 @@ package require Tcl 8.5
 package require http
 
 package require toclbox::log
+package require toclbox::url
+package require toclbox::text
 package require toclbox::options
 
 namespace eval ::toclbox::network {
     namespace eval vars {
+        variable -resolution on
+        variable -redirects 20;   # Maximum number of redirects that we follow (negative for infinite)
     }
     namespace export {[a-z]*}
     namespace import [namespace parent]::log::debug
+    namespace import [namespace parent]::text::resolve
     namespace ensemble create -command ::toclnet
 }
 
@@ -80,59 +85,37 @@ proc ::toclbox::network::SecureSocket { args } {
 }
 
 
+# ::toclbox::network::geturl -- Poor man's geturl
+#
+#       This is an oversimplified version of ::uri::geturl that can arrange for
+#       getting the content of files or http resources. It defaults to
+#       understand the url passed as a parameter as local file that understands
+#       sugarized string (see ::toclbox::text::resolve). This understanding and
+#       resolution mechanisms can be turned off by setting the boolean namespace
+#       variable -resolution to off. Unknown schemes are not recognised and will
+#       return an error. Arguments passed to this procedure are passed further
+#       to the relevant content fetch subsystem. For files (file://) this will
+#       be the opening mode (e.g. RDONLY BINARY), for http resources this will
+#       be arguments to ::http::geturl, for non-URLs this will be a list extra
+#       tokens for resolution. Note that this procedure is able to convert
+#       authentication data in URLs into basic HTTP authentication.
+#
+# Arguments:
+#	url	Scheme-led URL or file specification
+#	args	Blind list of arguments passed to underlying content get.
+#
+# Results:
+#       The content of the file or URL, or an error for unrecognised schemes.
+#
+# Side Effects:
+#       None.
 proc ::toclbox::network::geturl { url args } {
     set content ""
     if { [regexp -- {^([\w-]+)://(.*)} $url -> scheme spec] } {
         switch -- $scheme {
             "http" -
             "https" {
-                set URLmatcher {(?x)		# this is _expanded_ syntax
-                    ^
-                    (?: ([\w-]+) : ) ?		# <protocol scheme>
-                    (?: //
-                        (?:
-                            (
-                                [^@/\#?]+		# <userinfo part of authority>
-                            ) @
-                        )?
-                        (				# <host part of authority>
-                            [^/:\#?]+ |		# host name or IPv4 address
-                            \[ [^/\#?]+ \]		# IPv6 address in square brackets
-                        )
-                        (?: : (\d+) )?		# <port part of authority>
-                    )?
-                    ( [/\?] [^\#]*)?		# <path> (including query)
-                    (?: \# (.*) )?			# <fragment>
-                    $
-                }
-            
-                # Phase one: parse
-                ::toclbox::options::parse args -headers \
-                        -value hdrs \
-                        -default [list]
-                if {![regexp -- $URLmatcher $url -> proto user host port srvurl]} {
-                    if { $user ne "" } {
-                        lassign [split $user :] uname passwd
-                        debug INFO "Adding basic authentication for $uname"
-                        # Prefer 8.6 implementation, otherwise our own...
-                        if { [catch {binary encode base64 $user} b64] == 0 } {
-                            lappend hdrs Authorization "Basic $b64"
-                        } else {
-                            lappend hdrs Authorization "Basic [B64en $user]"
-                        }
-                    }
-                }
-                if { [catch {::http::geturl $url -headers $hdrs {*}$args} tok] == 0} {
-                    if { [::http::ncode $tok] >= 200 && [::http::ncode $tok] < 300 } {
-                        set content [::http::data $tok]
-                        debug NOTICE "Fetched content of $url via HTTP, ([string length $content] byte(s))"
-                    } else {
-                        debug WARN "Could not fetch content of $url via HTTP: [::http::code $tok], [::http::error $tok]"
-                    }
-                    ::http::cleanup $tok
-                } else {
-                    debug WARN "Error when trying to fetch content of $url via HTTP: $tok"
-                }
+                set content [GetHTTP $url {*}$args]
             }
             "file" {
                 set content [GetFile $spec {*}$args]
@@ -141,28 +124,137 @@ proc ::toclbox::network::geturl { url args } {
                 return -code error "$scheme is not a supported URL scheme"
             }
         }
-    } else {
-        # Default to getting it as a file
-        set content [GetFile $url {*}$args]
+    } elseif { ${vars::-resolution} }  {
+        # Default to getting it as a file, pass the arguments as extra keys for
+        # resolution.
+        set content [GetFile [resolve $url $args]]
     }
     
     return $content
 }
 
 
+# ::toclbox::network::GetHTTP -- Get remote HTTP resource
+#
+#       Wrapper around ::http::geturl that provides supports for basic
+#       authentication when user and password are present in URL.
+#
+# Arguments:
+#	url	URL to get data from
+#	args	Arguments to ::http::geturl
+#
+# Results:
+#       Content of URL, or an empty string.
+#
+# Side Effects:
+#       Will log errors.
+proc ::toclbox::network::GetHTTP { url args } {
+    ::toclbox::options::parse args -headers \
+            -value hdrs \
+            -default [list]
+    set surl [::toclbox::url::split $url]
+    if { [dict exists $surl user] && [dict get $surl user] ne "" } {
+        debug INFO "Adding basic authentication for $user"
+        set auth [dict get $surl user]
+        if { [dict exists $surl pwd] && [dict get $surl pwd] ne "" } {
+            append auth ":[dict get $surl pwd]"
+        }
+        
+        # Prefer 8.6 implementation, otherwise our own...
+        if { [catch {binary encode base64 $auth} b64] == 0 } {
+            lappend hdrs Authorization "Basic $b64"
+        } else {
+            lappend hdrs Authorization "Basic [B64en $auth]"
+        }
+    }
+    lappend args -headers $hdrs;  # Keep auth all calls to geturl below...
+
+    for { set i 0 } \
+        { ${vars::-redirects} < 0 \
+            || (${vars::-redirects} >= 0 && $i < ${vars::-redirects}) } \
+        {incr i} {
+    
+        if { [catch {::http::geturl $url -headers $hdrs {*}$args} tok] == 0} {
+            switch -glob -- [::http::ncode $tok] {
+                2[0-9][0-9] {
+                    set content [::http::data $tok]
+                    debug NOTICE "Fetched content of $url via HTTP, ([string length $content] byte(s))"
+                    ::http::cleanup $tok
+                    return $content
+                }
+                30[1237] {
+                    foreach {k v} [::http::meta $tok] {
+                        dict set meta [string tolower $k] $v
+                    }
+                    if { [dict exists $meta location] && [dict get $meta location] ne "" } {
+                        set tgt [::toclbox::url::split [dict get $meta location]]
+                        unset meta
+                        if { [dict get $tgt host] eq "" } {
+                            set src [::toclbox::url::split $url]
+                            dict set tgt host [dict get $src host]
+                        }
+                        set url [::toclbox::url::join {*}$tgt]
+                    } else {
+                        debug WARN "Could not fetch content of $url via HTTP: [::http::code $tok], [::http::error $tok]"
+                        ::http::cleanup $tok
+                        return ""        
+                    }
+                }
+                default {
+                    debug WARN "Could not fetch content of $url via HTTP: [::http::code $tok], [::http::error $tok]"
+                    ::http::cleanup $tok
+                    return ""        
+                }
+            }
+            ::http::cleanup $tok
+        } else {
+            debug WARN "Error when trying to fetch content of $url via HTTP: $tok"
+        }
+    }
+}
+
+
+# ::toclbox::network::GetFile -- Get file content
+#
+#       Get content of file
+#
+# Arguments:
+#	fpath	Path to file
+#	access	Access for open call, i.e. string or list of rights
+#
+# Results:
+#       Return content of file if we could open it or an error.
+#
+# Side Effects:
+#       Will log errors
 proc ::toclbox::network::GetFile { fpath {access "r"} } {
     set content ""
     if { [catch {open $fpath $access} fd] == 0 } {
         debug NOTICE "Got content of local file at $fpath ([string length $content] byte(s))"
         set content [read $fd]
         close $fd
+    } else {
+        debug WARN "Error getting content of file $fpath: $fd"
     }
+    
     return $content
 }
 
 
+# ::toclbox::network::B64en -- Base64 encode
+#
+#       Simplistic base64 encoding procedure taken from http://wiki.tcl.tk/775.
+#       This implementation does not take care of line breaks.
+#
+# Arguments:
+#	str	Input string
+#
+# Results:
+#       The base64 encoded string
+#
+# Side Effects:
+#       None.
 proc ::toclbox::network::B64en {str} {
-    # From http://wiki.tcl.tk/775
     binary scan $str B* bits
     switch [expr {[string length $bits]%6}] {
         0 {set tail {}}
