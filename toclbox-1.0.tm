@@ -9,6 +9,7 @@ package require toclbox::log
 package require toclbox::options
 package require toclbox::text
 package require toclbox::network
+package require toclbox::url
 
 # This provides a quicker to grasp API for the whole of toclbox, without digging
 # into the different packages at hand. It is largely inspired from the old utils
@@ -44,6 +45,11 @@ package require toclbox::network
 ::toclbox::control::alias ::toclbox::mapper ::toclbox::common::mapper 1
 ::toclbox::control::alias ::toclbox::defaults ::toclbox::common::defaults 1
 ::toclbox::control::alias ::toclbox::pdict ::toclbox::common::pdict 1
+
+::toclbox::control::alias ::toclbox::urlsplit ::toclbox::url::split 1
+::toclbox::control::alias ::toclbox::urljoin ::toclbox::url::join 1
+::toclbox::control::alias ::toclbox::urlencode ::toclbox::url::encode 1
+::toclbox::control::alias ::toclbox::urldecode ::toclbox::url::decode 1
 
 ::toclbox::control::alias ::toclbox::https ::toclbox::network::https 1
 ::toclbox::control::alias ::toclbox::geturl ::toclbox::network::geturl 1
