@@ -5,18 +5,19 @@ package require toclbox::log
 namespace eval ::toclbox::control {
     namespace eval vars {
         variable generator  0
-	variable -clamp     10000
-	variable -format    7
+	variable -clamp     4
+        variable -separator ""
     }
     namespace export {[a-z]*}
     namespace import [namespace parent]::log::debug
     namespace ensemble create -command ::toclctrl
 }
 
-# ::utils::Identifier -- Return a unique identifier
+# ::toclbox::control::identifier -- Return a unique identifier
 #
 #       Generate a well-formated unique identifier to be used, for
-#       example, to generate variable names or similar.
+#       example, to generate variable names or similar. When not prefixed, this
+#       identifier can be understood as a number.
 #
 # Arguments:
 #	pfx	String prefix to prepend to id, empty for none
@@ -28,9 +29,25 @@ namespace eval ::toclbox::control {
 # Side Effects:
 #       None.
 proc ::toclbox::control::identifier { {pfx "" } } {
-    set unique [incr vars::generator]
-    append unique [expr {[clock clicks -milliseconds]%${vars::-clamp}}]
-    append pfx [format "%.${vars::-format}d" $unique]
+    set clamp [expr int(1e${vars::-clamp})]; # NO CURLY-BRACES on purpose!!
+    # Convert hostname to a number, once and only once.
+    if { ![info exists vars::host] } {
+        set vars::host 0
+        foreach c [split [info hostname] ""] {
+            set vars::host [expr {($vars::host + [scan $c %c])%$clamp}]
+        }
+    }
+    # Increment a counter
+    set unique [expr {[incr vars::generator]%$clamp}]
+    # Get current time.
+    set now [expr {[clock clicks -milliseconds]%$clamp}]
+    # Now generate a unique identifier using the clamping specification. Place
+    # the timestamp at the beginning to maximise the chances to fail.
+    return [join [list $pfx \
+                        [format "%.${vars::-clamp}d" $now] \
+                        [format "%.${vars::-clamp}d" $vars::host] \
+                        [format "%.${vars::-clamp}d" $unique]] \
+                ${vars::-separator}]
 }
 
 

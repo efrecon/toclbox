@@ -1,0 +1,51 @@
+if {"::tcltest" ni [namespace children]} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
+package require toclbox::control
+package require toclbox::common
+
+test control-1.1 {Check length of identifiers} -body {
+    set len [expr {3*[::toclbox::common::defaults ::toclbox::control -clamp]}]
+    set id [::toclbox::control::identifier]
+    expr {$len == [string length $id]}
+} -result 1
+
+test control-2.1 {Check successive identifiers non equal} -body {
+    string equal [::toclbox::control::identifier] [::toclbox::control::identifier]
+} -result 0
+
+test control-3.1 {Check idenfitiers prefixed properly} -body {
+    ::toclbox::control::identifier "this is a test"
+} -match glob -result "this is a test*"
+
+test control-4.1 {Change identifier separator} -setup {
+    ::toclbox::common::defaults ::toclbox::control -separator ":"
+} -body {
+    llength [split [::toclbox::control::identifier header] ":"]
+} -result 4
+
+test control-10.1 {Setting option in subnamespace} -body {
+    set ns ::[toclbox::control::identifier]
+    namespace eval $ns {
+        variable -first 0
+        variable -second 1
+    }
+    ::toclbox::control::mset $ns {first 100} -
+    set ${ns}::-first
+} -result 100
+
+test control-11.1 {Refusing to set non-initialised option in subnamespace} -body {
+    set ns ::[toclbox::control::identifier]
+    namespace eval $ns {
+        variable -first 0
+        variable -second 1
+    }
+    ::toclbox::control::mset $ns {first 100 third 300} -
+    info exists ${ns}::-third
+} -result 0
+
+
+cleanupTests
