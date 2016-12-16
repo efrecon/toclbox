@@ -1,0 +1,109 @@
+if {"::tcltest" ni [namespace children]} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
+package require toclbox::url
+
+customMatch dictionary {apply {{e a} {
+    if { [dict size $e] != [dict size $a] } { return 0 }
+    dict for {k v} $e {
+        if {![dict exists $a $k]} { return 0 }
+        if { [dict get $a $k] ne $v } { return 0 }
+    }
+    return 1
+}}}
+
+test url-1.1 {Encode space and special chars} -body {
+    ::toclbox::url::encode "foo @+%/"
+} -result "foo+%40%2b%25%2f"
+
+test url-2.1 {Encode empty string} -body {
+    ::toclbox::url::encode ""
+} -result ""
+
+test url-3.1 {Encode utf-8} -body {
+    ::toclbox::url::encode "åäö"
+} -result "%e5%e4%f6"
+
+test url-10.1 {Decode space and special chars} -body {
+    ::toclbox::url::decode "foo+%40%2b%25%2f"
+} -result "foo @+%/"
+
+test url-11.1 {Decode space and special chars} -body {
+    ::toclbox::url::decode "foo%20%40%2b%25%2f"
+} -result "foo @+%/"
+
+test url-12.1 {Decode utf-8} -body {
+    ::toclbox::url::decode "foo%20%40%2b%25%2f"
+} -result "foo @+%/"
+
+test url-13.1 {Decode empty string} -body {
+    ::toclbox::url::decode "%e5%e4%f6"
+} -result "åäö"
+
+test url-14.1 {Decode uppercase} -body {
+    ::toclbox::url::decode "%E5%E4%F6"
+} -result "åäö"
+
+test url-20.1 {Split regular http} -match dictionary -body {
+    ::toclbox::url::split "https://github.com/efrecon/toclbox"
+} -result {scheme https user {} pwd {} host github.com port 443 path /efrecon/toclbox fragment {} query {}}
+
+test url-21.1 {Split regular http on particular port} -match dictionary -body {
+    ::toclbox::url::split "http://github.com:8080/efrecon/toclbox"
+} -result {scheme http user {} pwd {} host github.com port 8080 path /efrecon/toclbox fragment {} query {}}
+
+test url-22.1 {Split regular http with simple auth} -match dictionary -body {
+    ::toclbox::url::split "https://emmanuel@github.com/efrecon/toclbox"
+} -result {scheme https user emmanuel pwd {} host github.com port 443 path /efrecon/toclbox fragment {} query {}}
+
+test url-23.1 {Split regular http with complex auth} -match dictionary -body {
+    ::toclbox::url::split "https://efrecon%40gmail.com:XXX@github.com/efrecon/toclbox"
+} -result {scheme https user efrecon@gmail.com pwd XXX host github.com port 443 path /efrecon/toclbox fragment {} query {}}
+
+test url-24.1 {Split root url} -match dictionary -body {
+    ::toclbox::url::split "https://github.com/"
+} -result {scheme https user {} pwd {} host github.com port 443 path / fragment {} query {}}
+
+test url-25.1 {Split root url, missing slash} -match dictionary -body {
+    ::toclbox::url::split "https://github.com"
+} -result {scheme https user {} pwd {} host github.com port 443 path / fragment {} query {}}
+
+test url-26.1 {Split url with query} -match dictionary -body {
+    ::toclbox::url::split "https://github.com/api.cgi?username=efrecon%40gmail.com&password=secret"
+} -result {scheme https user {} pwd {} host github.com port 443 path /api.cgi fragment {} query {username efrecon@gmail.com password secret}}
+
+test url-30.1 {Join url with query} -body {
+    ::toclbox::url::join scheme https user {} pwd {} host github.com port 443 path /api.cgi fragment {} query {username efrecon@gmail.com password secret}
+} -result "https://github.com/api.cgi?username=efrecon%40gmail.com&password=secret"
+
+test url-31.1 {Join url on particular port} -body {
+    ::toclbox::url::join scheme http user {} pwd {} host github.com port 8080 path / fragment {} query {}
+} -result "http://github.com:8080/"
+
+test url-32.1 {Join url with no path nor port} -body {
+    ::toclbox::url::join scheme https user {} pwd {} host github.com
+} -result "https://github.com/"
+
+test url-33.1 {Join url with no scheme} -body {
+    ::toclbox::url::join user {} pwd {} port 443 host github.com
+} -result "https://github.com/"
+
+test url-34.1 {Join url with auth} -body {
+    ::toclbox::url::join user efrecon@gmail.com pwd XXX port 443 host github.com
+} -result "https://efrecon%40gmail.com:XXX@github.com/"
+
+test url-35.1 {Join file url} -body {
+    ::toclbox::url::join path /toto/tata
+} -result "/toto/tata"
+
+test url-36.1 {Join with no arguments} -body {
+    ::toclbox::url::join
+} -result ""
+
+
+
+
+cleanupTests

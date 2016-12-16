@@ -1,0 +1,56 @@
+### THIS IS A MARKER, DON'T REMOVE!
+
+if {"::tcltest" ni [namespace children]} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
+package require toclbox::network
+package require toclbox::log
+
+test network-1.1 {HTTPS registration} -setup {
+    ::toclbox::log::verbosity * 0
+} -body {
+    ::toclbox::network::https
+} -match glob -result {443 \{::tls::socket*}
+
+test network-2.1 {TLS 1.0 check} -setup {
+    ::toclbox::log::verbosity * 0
+} -body {
+    ::toclbox::network::https {tls1 1}
+} -match glob -result {443 \{::tls::socket -tls1 1*}
+
+test network-10.1 {Testing remote get} -setup {
+    ::toclbox::log::verbosity * 0
+    ::toclbox::network::https
+} -body {
+    ::toclbox::network::geturl "https://www.google.com"
+} -match glob -result "*google*"
+
+test network-11.1 {Testing local get} -setup {
+    ::toclbox::log::verbosity * 0
+} -body {
+    ::toclbox::network::geturl [info script]
+} -match glob -result "\#\#\# THIS IS A MARKER, DON'T REMOVE!*"
+
+test network-12.1 {Testing local get with file scheme} -setup {
+    ::toclbox::log::verbosity * 0
+} -body {
+    ::toclbox::network::geturl file://[info script]
+} -match glob -result "\#\#\# THIS IS A MARKER, DON'T REMOVE!*"
+
+test network-13.1 {Testing complex URL} -setup {
+    ::toclbox::log::verbosity * 0
+} -body {
+    ::toclbox::network::geturl https://github.com/search?q=toclbox
+} -match glob -result "*efrecon/toclbox*"
+
+test network-14.1 {Testing dummy headers} -setup {
+    ::toclbox::log::verbosity * 0
+} -body {
+    ::toclbox::network::geturl https://github.com/search?q=toclbox -headers [list X-Testing 1]
+} -match glob -result "*efrecon/toclbox*"
+
+
+cleanupTests
