@@ -13,13 +13,13 @@ test network-1.1 {HTTPS registration} -setup {
     ::toclbox::log::verbosity * 0
 } -body {
     ::toclbox::network::https
-} -match glob -result {443 \{::tls::socket*}
+} -match glob -result {443 \{*-tls1 1*}
 
 test network-2.1 {TLS 1.0 check} -setup {
     ::toclbox::log::verbosity * 0
 } -body {
-    ::toclbox::network::https {tls1 1}
-} -match glob -result {443 \{::tls::socket -tls1 1*}
+    ::toclbox::network::https {ssl3 1 tls1 1}
+} -match glob -result {443 \{*-ssl3 1 -tls1 1*}
 
 test network-10.1 {Testing remote get} -setup {
     ::toclbox::log::verbosity * 0
