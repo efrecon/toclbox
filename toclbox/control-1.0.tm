@@ -43,11 +43,12 @@ proc ::toclbox::control::identifier { {pfx "" } } {
     set now [expr {[clock clicks -milliseconds]%$clamp}]
     # Now generate a unique identifier using the clamping specification. Place
     # the timestamp at the beginning to maximise the chances to fail.
-    return [join [list $pfx \
-                        [format "%.${vars::-clamp}d" $now] \
-                        [format "%.${vars::-clamp}d" $vars::host] \
-                        [format "%.${vars::-clamp}d" $unique]] \
-                ${vars::-separator}]
+    if { $pfx ne "" } {set id [list $pfx] }
+    lappend id \
+        [format "%.${vars::-clamp}d" $now] \
+        [format "%.${vars::-clamp}d" $vars::host] \
+        [format "%.${vars::-clamp}d" $unique]
+    return [join $id ${vars::-separator}]
 }
 
 
@@ -119,16 +120,16 @@ proc ::toclbox::control::alias { alias target { force 0 } } {
     if {$fulltarget eq {}} {
         return -code error [list {no such command} $target]
     }
-    set save [namespace eval [namespace qualifiers $fulltarget] {namespace export}]
-    namespace eval [namespace qualifiers $fulltarget] {namespace export *}
+    set destination ::[string trimleft [namespace qualifiers $fulltarget] :]
+    set save [namespace eval $destination {namespace export}]
+    namespace eval $destination {namespace export *}
     while {[namespace exists [
         set tmpns [namespace current]::[info cmdcount]]]} {}
     set code [catch {set newcmd [namespace eval $tmpns [
         string map [list @{fulltarget} [list $fulltarget]] {
         namespace import @{fulltarget}
     }]]} cres copts]
-    namespace eval [namespace qualifiers $fulltarget] [
-        list namespace export {*}$save]
+    namespace eval $destination [list namespace export {*}$save]
     if {$code} {
         return -options $copts $cres
     }
