@@ -22,10 +22,22 @@ test control-3.1 {Check idenfitiers prefixed properly} -body {
 } -match glob -result "this is a test*"
 
 test control-4.1 {Change identifier separator} -setup {
+    set sep [::toclbox::common::defaults ::toclbox::control -separator]
     ::toclbox::common::defaults ::toclbox::control -separator ":"
 } -body {
     llength [split [::toclbox::control::identifier header] ":"]
+} -cleanup {
+    ::toclbox::common::defaults ::toclbox::control -separator $sep
 } -result 4
+
+test control-5.1 {Change identifier separator, withour header} -setup {
+    set sep [::toclbox::common::defaults ::toclbox::control -separator]
+    ::toclbox::common::defaults ::toclbox::control -separator ":"
+} -body {
+    llength [split [::toclbox::control::identifier] ":"]
+} -cleanup {
+    ::toclbox::common::defaults ::toclbox::control -separator $sep
+} -result 3
 
 test control-10.1 {Setting option in subnamespace} -body {
     set ns ::[toclbox::control::identifier]
@@ -47,5 +59,38 @@ test control-11.1 {Refusing to set non-initialised option in subnamespace} -body
     info exists ${ns}::-third
 } -result 0
 
+test control-20.1 {Aliasing within namespace} -body {
+    set ns ::[toclbox::control::identifier]
+    namespace eval $ns {
+        proc test {} {
+            return "It works!"
+        }
+    }
+    ::toclbox::control::alias ${ns}::tested ${ns}::test
+    ${ns}::tested
+} -result "It works!"
+
+test control-21.1 {Aliasing across namespace} -body {
+    set ns1 ::[toclbox::control::identifier]
+    namespace eval $ns1 {
+        proc test {} {
+            return "It works!"
+        }
+    }
+    set ns2 ::[toclbox::control::identifier]
+    ::toclbox::control::alias ${ns2}::tested ${ns1}::test
+    ${ns2}::tested
+} -result "It works!"
+
+test control-22.1 {Aliasing in main namespace} -body {
+    ::toclbox::control::alias ::myset ::set
+    myset a 10
+} -result "10" -cleanup {
+    rename ::myset {}
+}
+
+test control-23.1 {Aliasing non-existing command} -body {
+    ::toclbox::control::alias ::testing ::__this_is_a_command_that_does_not_exist
+} -match glob -result "*no such command*" -returnCodes error
 
 cleanupTests
