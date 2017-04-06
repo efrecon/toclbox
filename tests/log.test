@@ -1,0 +1,69 @@
+if {"::tcltest" ni [namespace children]} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
+package require toclbox::log
+package require toclbox::common
+
+test control-1.1 {Check default log} -body {
+    toclbox::log::logger
+} -result stderr
+
+test control-2.1 {Changing to stdout} -body {
+    toclbox::log::logger stdout
+} -result stdout -cleanup {
+    toclbox::log::logger stderr
+}
+
+test control-3.1 {Testing keeping stderr open} -body {
+    toclbox::log::logger stdout
+    puts stderr "Still open"
+} -errorOutput "Still open*" -match glob -cleanup {
+    toclbox::log::logger stderr    
+}
+
+test control-4.1 {Testing logging to fd} -body {
+    set chars [split {abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789} ""]
+    set fname "__test"
+    for {set i 0} {$i<8} {incr i} {
+        append fname [lindex $chars [expr {int(rand()*[llength $chars])}]]
+    }
+    append fname ".log"
+    set fullpath [file join [file dirname [info script]] $fname]
+    set fd [open $fullpath w]
+    toclbox::log::logger $fd
+    expr [file size $fullpath]>0
+} -result 1 -cleanup {
+    toclbox::log::logger stderr
+    file delete -force -- $fullpath
+}
+
+test control-5.1 {Testing logging to filenname} -body {
+    set chars [split {abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789} ""]
+    set fname "__test"
+    for {set i 0} {$i<8} {incr i} {
+        append fname [lindex $chars [expr {int(rand()*[llength $chars])}]]
+    }
+    append fname ".log"
+    set fullpath [file join [file dirname [info script]] $fname]
+    toclbox::log::logger $fullpath
+    expr [file size $fullpath]>0
+} -result 1 -cleanup {
+    toclbox::log::logger stderr
+    file delete -force -- $fullpath
+}
+
+test control-6.1 {Testing logging to command} -body {
+    proc mylog {lvl pkg msg} {
+        set ::__received [list $lvl $pkg $msg]
+    }
+    toclbox::log::logger @mylog
+    llength $::__received
+} -result 3 -cleanup {
+    toclbox::log::logger stderr
+    rename mylog {}
+    unset ::__received
+}
+
