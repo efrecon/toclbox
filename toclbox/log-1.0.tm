@@ -85,33 +85,35 @@ proc ::toclbox::log::debug { lvl output { pkg "" } } {
 #
 # Side Effects:
 #       None.
-proc ::toclbox::log::logger { fd_or_n } {
-    if { [string index $fd_or_n 0] eq "@" } {
-	set fd $fd_or_n
-    } else {
-	# Open file for appending if it is a file, otherwise consider the
-	# argument as a file descriptor.
-	if { [catch {fconfigure $fd_or_n}] } {
-	    debug 3 "Appending log to $fd_or_n"
-	    if { [catch {open $fd_or_n a} fd] } {
-		debug 2 "Could not open $fd_or_n: $fd"
-		return -code error "Could not open $fd_or_n: $fd"
-	    }
-	} else {
-	    set fd $fd_or_n
-	}
+proc ::toclbox::log::logger { { fd_or_n "" } } {
+    if { $fd_or_n ne "" } {
+        if { [string index $fd_or_n 0] eq "@" } {
+            set fd $fd_or_n
+        } else {
+            # Open file for appending if it is a file, otherwise consider the
+            # argument as a file descriptor.
+            if { [catch {fconfigure $fd_or_n}] } {
+                debug 3 "Appending log to $fd_or_n"
+                if { [catch {open $fd_or_n a} fd] } {
+                    debug 2 "Could not open $fd_or_n: $fd"
+                    return -code error "Could not open $fd_or_n: $fd"
+                }
+            } else {
+                set fd $fd_or_n
+            }
+        }
+    
+        # Close previous debug file descriptor if it was not a standard
+        # one and setup new one.
+        if { ![string match std* $vars::dbgfd] } {
+            catch {close $vars::dbgfd}
+        }
+        if { [string index $fd 0] ne "@" } {
+            fconfigure $fd -buffering line
+        }
+        set vars::dbgfd $fd
+        debug 3 "Log output successfully changed to new target"        
     }
-
-    # Close previous debug file descriptor if it was not a standard
-    # one and setup new one.
-    if { ![string match std* $vars::dbgfd] } {
-	catch {close $vars::dbgfd}
-    }
-    if { [string index $fd 0] ne "@" } {
-	fconfigure $fd -buffering line
-    }
-    set vars::dbgfd $fd
-    debug 3 "Log output successfully changed to new target"
 
     return $vars::dbgfd
 }
