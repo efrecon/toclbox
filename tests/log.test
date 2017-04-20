@@ -7,24 +7,24 @@ if {"::tcltest" ni [namespace children]} {
 package require toclbox::log
 package require toclbox::common
 
-test control-1.1 {Check default log} -body {
+test log-1.1 {Check default log} -body {
     toclbox::log::logger
 } -result stderr
 
-test control-2.1 {Changing to stdout} -body {
+test log-2.1 {Changing to stdout} -body {
     toclbox::log::logger stdout
 } -result stdout -cleanup {
     toclbox::log::logger stderr
 }
 
-test control-3.1 {Testing keeping stderr open} -body {
+test log-3.1 {Testing keeping stderr open} -body {
     toclbox::log::logger stdout
     puts stderr "Still open"
 } -errorOutput "Still open*" -match glob -cleanup {
     toclbox::log::logger stderr    
 }
 
-test control-4.1 {Testing logging to fd} -body {
+test log-4.1 {Testing logging to fd} -body {
     set chars [split {abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789} ""]
     set fname "__test"
     for {set i 0} {$i<8} {incr i} {
@@ -40,7 +40,7 @@ test control-4.1 {Testing logging to fd} -body {
     file delete -force -- $fullpath
 }
 
-test control-5.1 {Testing logging to filenname} -body {
+test log-5.1 {Testing logging to filenname} -body {
     set chars [split {abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789} ""]
     set fname "__test"
     for {set i 0} {$i<8} {incr i} {
@@ -55,7 +55,7 @@ test control-5.1 {Testing logging to filenname} -body {
     file delete -force -- $fullpath
 }
 
-test control-6.1 {Testing logging to command} -body {
+test log-6.1 {Testing logging to command} -body {
     proc mylog {lvl pkg msg} {
         set ::__received [list $lvl $pkg $msg]
     }
@@ -66,4 +66,58 @@ test control-6.1 {Testing logging to command} -body {
     rename mylog {}
     unset ::__received
 }
+
+test log-7.1 {Testing verbosity collect} -body {
+    llength [toclbox::log::verbosity]
+} -result 2
+
+test log-8.1 {Testing setting verbosity} -body {
+    set ::__oldverbose [toclbox::log::verbosity]
+    toclbox::log::verbosity fakemodule DEBUG
+    toclbox::log::debug DEBUG "This is an output" fakemodule
+} -cleanup {
+    toclbox::log::verbosity $::__oldverbose
+    unset ::__oldverbose
+} -errorOutput "*This is an output*" -match glob
+
+
+test log-9.1 {Testing setting lower verbosity} -body {
+    set ::__oldverbose [toclbox::log::verbosity]
+    toclbox::log::verbosity fakemodule DEBUG
+    toclbox::log::debug INFO "This is an output" fakemodule
+} -cleanup {
+    toclbox::log::verbosity $::__oldverbose
+    unset ::__oldverbose
+} -errorOutput "*This is an output*" -match glob
+
+
+test log-10.1 {Testing setting higher verbosity} -body {
+    set ::__oldverbose [toclbox::log::verbosity]
+    toclbox::log::verbosity fakemodule INFO
+    toclbox::log::debug DEBUG "This is an output" fakemodule
+} -cleanup {
+    toclbox::log::verbosity $::__oldverbose
+    unset ::__oldverbose
+} -errorOutput ""
+
+
+test log-11.1 {Testing setting several verbosities} -body {
+    set ::__oldverbose [toclbox::log::verbosity]
+    toclbox::log::verbosity fakemodule DEBUG aPackage INFO
+    toclbox::log::debug INFO "This is an output" aPackage
+} -cleanup {
+    toclbox::log::verbosity $::__oldverbose
+    unset ::__oldverbose
+} -errorOutput "*aPackage*This is an output*" -match glob
+
+
+test log-12.1 {Testing default verbosity format} -body {
+    set ::__oldverbose [toclbox::log::verbosity]
+    toclbox::log::verbosity fakemodule DEBUG
+    toclbox::log::debug DEBUG "This is an output" fakemodule
+} -cleanup {
+    toclbox::log::verbosity $::__oldverbose
+    unset ::__oldverbose
+} -errorOutput {\[???????? ??????\] \[debug\] \[fakemodule\] This is an output*} -match glob
+
 
