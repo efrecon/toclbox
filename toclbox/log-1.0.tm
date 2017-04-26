@@ -4,10 +4,11 @@ package require toclbox::common
 
 namespace eval ::toclbox::log {
     namespace eval vars {
-        variable -tags    {1 CRITICAL 2 ERROR 3 WARN 4 NOTICE 5 INFO 6 DEBUG 7 TRACE}
+	variable -tags    {1 CRITICAL 2 ERROR 3 WARN 4 NOTICE 5 INFO 6 DEBUG 7 TRACE}
 	variable -header  "\[%Y%m%d %H%M%S\] \[%lvl%\] \[%pkg%\] "
 	variable -verbose {* 5}
-        variable dbgfd    stderr
+	variable dbgfd    stderr
+        variable unknown  --U-N-K-N-O-W-N--
     }
     namespace export {[a-z]*}
     namespace ensemble create -command ::tocllog
@@ -16,9 +17,22 @@ namespace eval ::toclbox::log {
 
 
 proc ::toclbox::log::format { lvl pkg output } {
-    set lvl [string tolower [dict get ${vars::-tags} $lvl]]
+    # Convert to integer
+    set lvl [Level $lvl]
+    # Convert to existing and known human-readable level if possible.
+    if { [dict exists ${vars::-tags} $lvl] } {
+        set lvl [dict get ${vars::-tags} $lvl]
+    } else {
+        set lvl $vars::unknown
+    }
+    # Convert to lowercase.
+    set lvl [string tolower $lvl]
+    # Map known dynamic variables
     set hdr [string map [mapper "" pkg $pkg lvl $lvl] ${vars::-header}]
+    # Relay clock formatting routines.
     set hdr [clock format [clock seconds] -format $hdr]
+    
+    # Concat and return
     return ${hdr}${output}
 }
 
@@ -87,32 +101,32 @@ proc ::toclbox::log::debug { lvl output { pkg "" } } {
 #       None.
 proc ::toclbox::log::logger { { fd_or_n "" } } {
     if { $fd_or_n ne "" } {
-        if { [string index $fd_or_n 0] eq "@" } {
-            set fd $fd_or_n
-        } else {
-            # Open file for appending if it is a file, otherwise consider the
-            # argument as a file descriptor.
-            if { [catch {fconfigure $fd_or_n}] } {
-                debug 3 "Appending log to $fd_or_n"
-                if { [catch {open $fd_or_n a} fd] } {
-                    debug 2 "Could not open $fd_or_n: $fd"
-                    return -code error "Could not open $fd_or_n: $fd"
-                }
-            } else {
-                set fd $fd_or_n
-            }
-        }
+	if { [string index $fd_or_n 0] eq "@" } {
+	    set fd $fd_or_n
+	} else {
+	    # Open file for appending if it is a file, otherwise consider the
+	    # argument as a file descriptor.
+	    if { [catch {fconfigure $fd_or_n}] } {
+		debug 3 "Appending log to $fd_or_n"
+		if { [catch {open $fd_or_n a} fd] } {
+		    debug 2 "Could not open $fd_or_n: $fd"
+		    return -code error "Could not open $fd_or_n: $fd"
+		}
+	    } else {
+		set fd $fd_or_n
+	    }
+	}
     
-        # Close previous debug file descriptor if it was not a standard
-        # one and setup new one.
-        if { ![string match std* $vars::dbgfd] } {
-            catch {close $vars::dbgfd}
-        }
-        if { [string index $fd 0] ne "@" } {
-            fconfigure $fd -buffering line
-        }
-        set vars::dbgfd $fd
-        debug 3 "Log output successfully changed to new target"        
+	# Close previous debug file descriptor if it was not a standard
+	# one and setup new one.
+	if { ![string match std* $vars::dbgfd] } {
+	    catch {close $vars::dbgfd}
+	}
+	if { [string index $fd 0] ne "@" } {
+	    fconfigure $fd -buffering line
+	}
+	set vars::dbgfd $fd
+	debug 3 "Log output successfully changed to new target"        
     }
 
     return $vars::dbgfd
