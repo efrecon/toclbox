@@ -111,7 +111,7 @@ test log-11.1 {Testing setting several verbosities} -body {
 } -errorOutput "*aPackage*This is an output*" -match glob
 
 
-test log-12.1 {Testing default verbosity format} -body {
+test log-20.1 {Testing default verbosity format output} -body {
     set ::__oldverbose [toclbox::log::verbosity]
     toclbox::log::verbosity fakemodule DEBUG
     toclbox::log::debug DEBUG "This is an output" fakemodule
@@ -119,5 +119,43 @@ test log-12.1 {Testing default verbosity format} -body {
     toclbox::log::verbosity $::__oldverbose
     unset ::__oldverbose
 } -errorOutput {\[???????? ??????\] \[debug\] \[fakemodule\] This is an output*} -match glob
+
+
+test log-21.1 {Testing changing verbosity format output} -body {
+    set ::__hdr [::toclbox::common::defaults ::toclbox::log -header]
+    ::toclbox::common::defaults ::toclbox::log -header "%pkg% -- %Y%m%d %H%M%S -- %lvl%: "
+    set ::__oldverbose [toclbox::log::verbosity]
+    toclbox::log::verbosity fakemodule DEBUG
+    toclbox::log::debug DEBUG "This is an output" fakemodule
+} -cleanup {
+    toclbox::log::verbosity $::__oldverbose
+    unset ::__oldverbose
+    ::toclbox::common::defaults ::toclbox::log -header $::__hdr
+    unset ::__hdr
+} -errorOutput {fakemodule -- ???????? ?????? -- debug: This is an output*} -match glob
+
+
+test log-22.1 {Testing changing format output to empty} -body {
+    set ::__hdr [::toclbox::common::defaults ::toclbox::log -header]
+    ::toclbox::common::defaults ::toclbox::log -header ""
+    set ::__oldverbose [toclbox::log::verbosity]
+    toclbox::log::verbosity fakemodule DEBUG
+    toclbox::log::debug DEBUG "This is an output" fakemodule
+} -cleanup {
+    toclbox::log::verbosity $::__oldverbose
+    unset ::__oldverbose
+    ::toclbox::common::defaults ::toclbox::log -header $::__hdr
+    unset ::__hdr
+} -errorOutput {This is an output*} -match glob
+
+
+test log-30.1 {Testing formating core (default)} -body {
+    toclbox::log::format DEBUG fakemodule "This is an output"
+} -result {\[???????? ??????\] \[debug\] \[fakemodule\] This is an output} -match glob
+
+
+test log-31.1 {Testing formating unknown level} -body {
+    toclbox::log::format VIP fakemodule "This is an output"
+} -result {\[???????? ??????\] \[--u-n-k-n-o-w-n--\] \[fakemodule\] This is an output} -match glob
 
 
