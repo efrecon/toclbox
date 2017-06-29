@@ -58,5 +58,10 @@ test safe-4.1 {Unaliasing chain} -body {
     return [$i eval file normalize thisfile]
 } -result {::myImplementation normalize thisfile}
 
+test safe-5.1 {Environment passing} -body {
+    set i [interp create -safe]
+    ::toclbox::safe::environment $i {USER*}
+    return [$i eval array get ::env]
+} -result [array get ::env USER*]
 
 cleanupTests

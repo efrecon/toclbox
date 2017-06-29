@@ -116,6 +116,14 @@ proc ::toclbox::safe::unalias { slave cmd } {
     }
 }
 
+proc ::toclbox::safe::environment { slave {allow *} {deny {}} } {
+    foreach varname [array names ::env] {
+        if { [Allowed $varname $allow $deny] } {
+            $slave eval set ::env($varname) $::env($varname)
+        }
+    }
+}
+
 
 # ::toclbox::safe::OutsideCaller -- First caller out of this namespace
 #
@@ -164,6 +172,25 @@ proc ::toclbox::safe::Context { slave } {
     }
     
     return [namespace current]::interps::[string map {: _} [namespace qualifiers $origin]]__[string map {: _} $slave]
+}
+
+proc ::toclbox::safe::Allowed { key allow deny } {
+    set allowed 0;  # Default is to deny everything!
+    foreach ptn $allow {
+        if { [string match $ptn $key] } {
+            set allowed 1
+            break
+        }
+    }
+    if { $allowed  } {
+        foreach ptn $deny {
+            if { [string match $ptn $key] } {
+                set allowed 0
+                break
+            }
+        }
+    }
+    return $allowed
 }
 
 package provide toclbox::safe $::toclbox::safe::version
