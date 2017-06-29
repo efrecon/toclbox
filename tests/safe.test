@@ -1,0 +1,62 @@
+if {"::tcltest" ni [namespace children]} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
+package require toclbox::safe
+
+test safe-1.1 {Aliasing} -body {
+    set i [interp create -safe]
+    namespace eval ::myimplementation {}
+    proc ::myimplementation::File {args} {
+        return $args
+    }
+    ::toclbox::safe::alias $i file ::myimplementation::File "firstarg"
+    return [$i eval file normalize thisfile]
+} -result {firstarg normalize thisfile}
+
+test safe-2.1 {Unaliasing} -match glob -body {
+    set i [interp create -safe]
+    namespace eval ::myimplementation {}
+    proc ::myimplementation::File {args} {
+        return $args
+    }
+    ::toclbox::safe::alias $i file ::myimplementation::File "firstarg"
+    ::toclbox::safe::unalias $i file
+    return [$i eval file normalize thisfile]
+} -result {*file*} -returnCodes 1
+
+test safe-3.1 {Two layers of aliasing} -body {
+    set i [interp create -safe]
+    namespace eval ::myImplementation {}
+    proc ::myImplementation::File {args} {
+        return [linsert $args 0 [namespace current]]
+    }
+    namespace eval ::myOtherImplementation {}
+    proc ::myOtherImplementation::File {args} {
+        return [linsert $args 0 [namespace current]]
+    }
+    ::toclbox::safe::alias $i file ::myImplementation::File
+    ::toclbox::safe::alias $i file ::myOtherImplementation::File
+    return [$i eval file normalize thisfile]
+} -result {::myOtherImplementation normalize thisfile}
+
+test safe-4.1 {Unaliasing chain} -body {
+    set i [interp create -safe]
+    namespace eval ::myImplementation {}
+    proc ::myImplementation::File {args} {
+        return [linsert $args 0 [namespace current]]
+    }
+    namespace eval ::myOtherImplementation {}
+    proc ::myOtherImplementation::File {args} {
+        return [linsert $args 0 [namespace current]]
+    }
+    ::toclbox::safe::alias $i file ::myImplementation::File
+    ::toclbox::safe::alias $i file ::myOtherImplementation::File
+    ::toclbox::safe::unalias $i file
+    return [$i eval file normalize thisfile]
+} -result {::myImplementation normalize thisfile}
+
+
+cleanupTests

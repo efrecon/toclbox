@@ -1,0 +1,44 @@
+if {"::tcltest" ni [namespace children]} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
+package require toclbox::firewall
+
+test firewall-1.1 {Accessing all google} -match glob -body {
+    set i [interp create -safe]
+    ::toclbox::firewall::allow $i www.google.com
+    set sock [$i eval socket www.google.com 443]
+} -result {sock*} -cleanup {
+    $i eval close $sock
+}
+
+test firewall-2.1 {Preventing unsafe access to Google} -match glob -body {
+    set i [interp create -safe]
+    ::toclbox::firewall::allow $i www.google.com 443
+    set sock [$i eval socket www.google.com 80]
+} -result {Access to www.google.com*prevented*} -returnCodes 1 -cleanup {
+    catch {$i eval close $sock}
+}
+
+test firewall-3.1 {Preventing unsafe access to Google} -match glob -body {
+    set i [interp create -safe]
+    ::toclbox::firewall::allow $i www.google.com *;  # Allow all
+    ::toclbox::firewall::deny $i www.google.com 80;  # Prevent subset
+    set sock [$i eval socket www.google.com 80]
+} -result {Access to www.google.com*prevented*} -returnCodes 1 -cleanup {
+    catch {$i eval close $sock}
+}
+
+test firewall-4.1 {Reset firewalling} -match glob -body {
+    set i [interp create -safe]
+    ::toclbox::firewall::allow $i www.google.com
+    ::toclbox::firewall::reset $i
+    set sock [$i eval socket www.google.com 443]
+} -result {*socket*} -returnCodes 1 -cleanup {
+    catch {$i eval close $sock}
+}
+
+
+cleanupTests

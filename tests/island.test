@@ -1,0 +1,96 @@
+if {"::tcltest" ni [namespace children]} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
+package require toclbox::island
+
+test island-1.1 {Accessing our directory} -body {
+    set i [interp create -safe]
+    ::toclbox::island::add $i [file dirname [info script]]
+    $i eval cd [file dirname [info script]]
+    set nfiles [$i eval {
+        return [llength [glob -- *.test]]
+    }]
+    expr {$nfiles>0}
+} -result {1}
+
+
+test island-2.1 {Accessing ourselves} -body {
+    set i [interp create -safe]
+    ::toclbox::island::add $i [info script]
+    $i eval {
+        proc flength {fpath} {
+            set fd [open $fpath]
+            set content [read $fd]
+            close $fd
+            return [string length $content]
+        }
+    }
+    set len [$i eval flength [info script]]
+    expr {$len>0}
+} -result {1}
+
+
+test island-3.1 {Accessing a forbidden file} -match glob -body {
+    set i [interp create -safe]
+    ::toclbox::island::add $i [info script]
+    $i eval {
+        proc flength {fpath} {
+            set fd [open $fpath]
+            set content [read $fd]
+            close $fd
+            return [string length $content]
+        }
+    }
+    set len [$i eval flength [file join [file dirname [info script]] common.test]]
+    expr {$len>0}
+} -result {*Access to *common.test denied*} -returnCodes 1
+
+
+test island-4.1 {Testing file size} -body {
+    set i [interp create -safe]
+    ::toclbox::island::add $i [info script]
+    expr {[$i eval file size [info script]]>0}
+} -result {1}
+
+
+test island-5.1 {Testing creation of directory} -setup {
+    set chars [split {abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789} ""]
+    set fname "__test"
+    for {set i 0} {$i<8} {incr i} {
+        append fname [lindex $chars [expr {int(rand()*[llength $chars])}]]
+    }
+    # Double dirname to access parent directory
+    set ::fullpath [file join [file dirname [info script]] $fname]
+} -body {
+    set i [interp create -safe]
+    ::toclbox::island::add $i [file dirname [info script]]
+    $i eval file mkdir $::fullpath
+    file isdirectory $::fullpath
+} -result {1} -cleanup {
+    file delete -- $::fullpath
+}
+
+test island-6.1 {Testing creation of directory outside our control} -match glob -setup {
+    set chars [split {abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789} ""]
+    set fname "__test"
+    for {set i 0} {$i<8} {incr i} {
+        append fname [lindex $chars [expr {int(rand()*[llength $chars])}]]
+    }
+    # Double dirname to access parent directory
+    set ::fullpath [file join [file dirname [file dirname [file normalize [info script]]]] $fname]
+} -body {
+    set i [interp create -safe]
+    ::toclbox::island::add $i [file dirname [info script]]
+    $i eval file mkdir $::fullpath
+    file isdirectory $::fullpath
+} -result {Access to*denied.} -returnCodes 1 -cleanup {
+    catch {file delete -- $::fullpath}
+}
+
+
+
+
+cleanupTests
