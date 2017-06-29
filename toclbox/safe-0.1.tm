@@ -119,7 +119,7 @@ proc ::toclbox::safe::unalias { slave cmd } {
 proc ::toclbox::safe::environment { slave {allow *} {deny {}} } {
     foreach varname [array names ::env] {
         if { [Allowed $varname $allow $deny] } {
-            $slave eval set ::env($varname) $::env($varname)
+            $slave eval [list set ::env($varname) $::env($varname)]
         }
     }
 }
