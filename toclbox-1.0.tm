@@ -3,13 +3,9 @@ package require Tcl 8.5
 namespace eval ::toclbox {}
 
 # Require all packages that are only 8.5 dependent.
-package require toclbox::config
-package require toclbox::control
-package require toclbox::log
-package require toclbox::options
-package require toclbox::text
-package require toclbox::network
-package require toclbox::url
+foreach pkg [list config control log options text network url safe island firewall] {
+    package require toclbox::$pkg
+}
 
 # This provides a quicker to grasp API for the whole of toclbox, without digging
 # into the different packages at hand. It is largely inspired from the old utils
@@ -57,8 +53,9 @@ package require toclbox::url
 # Add 8.6 specific packages. This should be of less importance as 8.6 is stable
 # and mature. But still...
 if { [catch {package require Tcl 8.6} ver] == 0 } {
-    package require toclbox::exec
-    package require toclbox::sys
+    foreach pkg [list exec sys] {
+        package require toclbox::$pkg
+    }
     
     ::toclbox::control::alias ::toclbox::exec ::toclbox::exec::run 1
     ::toclbox::control::alias ::toclbox::running ::toclbox::exec::running 1
