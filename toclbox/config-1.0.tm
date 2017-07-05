@@ -105,7 +105,7 @@ proc ::toclbox::config::LKeep { vals dividers type } {
 	if { [llength $exacts] > 0 } {
 	    debug 5 "Acquired $len elements from $type"
 	} else {
-	    set keep [expr {($len / [lindex $exacts end])*[lindex $exacts end]}]
+	    set keep [expr {($len / [lindex $cuts end])*[lindex $cuts end]}]
 	    debug 3 "$type contained $len elements,\
 		     wrong numer! Keeping $keep first ones"
 	    set vals [lrange $vals 0 [expr {$keep - 1}]]
