@@ -2,12 +2,14 @@ package require Tcl 8.5
 
 package require toclbox::common
 package require toclbox::log
+package require toclbox::config
 
 namespace eval ::toclbox::text {
     namespace eval vars {
 	variable -resolve     10
 	variable -separator   {/ |}
         variable -ellipsis    "(..)"
+		variable -offload     "@"
     }
     namespace export {[a-z]*}
     namespace import [namespace parent]::log::debug
@@ -60,6 +62,17 @@ proc ::toclbox::text::resolve { txt { keys {} } } {
 
     debug ERROR "Maximum number of resolution iterations reached!"
     return [Defaults $txt $keys]
+}
+
+proc ::toclbox::text::offload { varname {divider -1} {type "file"} {keys {}} } {
+	upvar $varname var
+	if { [string first ${vars::-offload} $var] == 0 } {
+		set fname [string trim [string range $var [string length ${vars::-offload}] end]]
+		set fname [resolve $fname $keys]
+		set var [[namespace parent]::config::read $fname $divider $type]
+		return $fname
+	}
+	return ""
 }
 
 

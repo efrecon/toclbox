@@ -84,4 +84,10 @@ test text-22.1 {Testing ellipsis of long string} -body {
     ::toclbox::text::human "This is a very long sentence that is completely meaningless, but long enough to be shortened when printed out."
 } -result "This is a very long (..)"
 
+test text-30.1 {Testing inlining} -body {
+    set var "@%prgdir%/dummy.lst"
+    ::toclbox::text::offload var 3 dummy
+    return [llength $var]
+} -result 6
+
 cleanupTests
