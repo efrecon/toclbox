@@ -44,6 +44,7 @@ namespace eval ::toclbox::firewall {
 # Side Effects:
 #       None.
 proc ::toclbox::firewall::allow { slave { host "" } {port *} } {
+    toclbox log notice "Allowing network access to hosts matching: $host at ports matching: $port"
     set vname [namespace current]::interps::[string map {: _} $slave]
     if { ![info exists $vname]} {
         Init $slave
@@ -72,6 +73,7 @@ proc ::toclbox::firewall::allow { slave { host "" } {port *} } {
 # Side Effects:
 #       None.
 proc ::toclbox::firewall::deny { slave { host "*" } {port *} } {
+    toclbox log notice "Restricting network access to hosts matching: $host at ports matching: $port"
     set vname [namespace current]::interps::[string map {: _} $slave]
     if { ![info exists $vname]} {
         Init $slave
