@@ -32,6 +32,7 @@ foreach pkg [list config control log options text network url safe island firewa
 ::toclbox::control::alias ::toclbox::psplit ::toclbox::text::split 1
 ::toclbox::control::alias ::toclbox::split ::toclbox::text::split 1
 ::toclbox::control::alias ::toclbox::human ::toclbox::text::human 1
+::toclbox::control::alias ::toclbox::offload ::toclbox::text::offload 1
 
 ::toclbox::control::alias ::toclbox::lclean ::toclbox::config::clean 1
 ::toclbox::control::alias ::toclbox::lscan ::toclbox::config::scan 1
