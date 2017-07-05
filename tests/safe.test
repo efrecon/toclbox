@@ -61,7 +61,17 @@ test safe-4.1 {Unaliasing chain} -body {
 test safe-5.1 {Environment passing} -body {
     set i [interp create -safe]
     ::toclbox::safe::environment $i {USER*}
-    return [$i eval array get ::env]
-} -result [array get ::env USER*]
+    return [expr {[llength [$i eval array get ::env]]>0}]
+} -result 1
+
+test safe-6.1 {Accessing package} -body {
+    set i [interp create -safe]
+    # http package needs access to tcl_platform (for user-agent) and to
+    # encoding, give them away...
+    ::toclbox::safe::environment $i * "" tcl_platform
+    ::toclbox::safe::alias $i encoding ::toclbox::safe::invoke $i encoding
+    ::toclbox::safe::package $i http
+    return [expr {[llength [$i eval info commands ::http::*]]>0}]
+} -result 1
 
 cleanupTests

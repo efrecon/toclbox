@@ -116,10 +116,31 @@ proc ::toclbox::safe::unalias { slave cmd } {
     }
 }
 
-proc ::toclbox::safe::environment { slave {allow *} {deny {}} } {
-    foreach varname [array names ::env] {
+proc ::toclbox::safe::environment { slave {allow *} {deny {}} {glbl env}} {
+    upvar \#0 $glbl var
+    foreach varname [array names var] {
         if { [Allowed $varname $allow $deny] } {
-            $slave eval [list set ::env($varname) $::env($varname)]
+            $slave eval [list set ::${glbl}($varname) $var($varname)]
+        }
+    }
+}
+
+proc ::toclbox::safe::package { slave pkg { version ""} } {
+    debug NOTICE "Loading $pkg into slave"
+    set cmds [LoadCommand $pkg $version]
+    foreach l [split $cmds ";\r\n"] {
+        switch -- [lindex $l 0] {
+            "source" {
+                debug INFO "Sourcing [lindex $l end] to bring in package $pkg"
+                eval [linsert $l 0 $slave invokehidden -global --]
+            }
+            "load" {
+                debug INFO "Loading binary [lindex $l end] to bring in package $pkg"
+                eval [linsert $l 0 $slave invokehidden -global --]
+            }
+            default {
+                $slave eval $l
+            }
         }
     }
 }
@@ -174,6 +195,7 @@ proc ::toclbox::safe::Context { slave } {
     return [namespace current]::interps::[string map {: _} [namespace qualifiers $origin]]__[string map {: _} $slave]
 }
 
+
 proc ::toclbox::safe::Allowed { key allow deny } {
     set allowed 0;  # Default is to deny everything!
     foreach ptn $allow {
@@ -191,6 +213,30 @@ proc ::toclbox::safe::Allowed { key allow deny } {
         }
     }
     return $allowed
+}
+
+
+proc ::toclbox::safe::LoadCommand {name {version ""}} {
+    # Get the command to load a package without actually loading the package
+    #
+    # package ifneeded can return us the command to load a package but
+    # it needs a version number. package versions will give us that
+    set versions [::package versions $name]
+    if {[llength $versions] == 0} {
+        # We do not know about this package yet. Invoke package unknown
+        # to search
+        {*}[::package unknown] $name
+        # Check again if we found anything
+        set versions [::package versions $name]
+        if {[llength $versions] == 0} {
+            error "Could not find package $name"
+        }
+    }
+    if { $version eq "" } {
+        return [::package ifneeded $name [lindex $versions 0]]
+    } else {
+        return [::package ifneeded $name $version]
+    }
 }
 
 package provide toclbox::safe $::toclbox::safe::version
