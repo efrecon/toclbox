@@ -117,9 +117,11 @@ proc ::toclbox::safe::unalias { slave cmd } {
 }
 
 proc ::toclbox::safe::environment { slave {allow *} {deny {}} {glbl env}} {
+    debug NOTICE "Selectively passing keys matching $allow (but not $deny) from global $glbl"
     upvar \#0 $glbl var
     foreach varname [array names var] {
         if { [Allowed $varname $allow $deny] } {
+            debug DEBUG "Passing $varname to $glbl in slave"
             $slave eval [list set ::${glbl}($varname) $var($varname)]
         }
     }
