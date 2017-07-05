@@ -1,0 +1,14 @@
+# This is a dummy list file that will be used to test functionality of the
+# configuration module. Do not modify, as the tests are dependant on the content
+# of this file.
+
+-help
+<no arg>
+Dump program help and exit
+
+-option
+<tcl>
+Some option to the program
+
+-junk
+<someval>

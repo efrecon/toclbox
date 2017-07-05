@@ -1,0 +1,21 @@
+if {"::tcltest" ni [namespace children]} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
+package require toclbox::config
+
+test config-1.1 {Reading from file} -body {
+    set fname [file normalize [file join [file dirname [info script]] dummy.lst]]
+    set content [::toclbox::config::read $fname 3 "dummy"]
+    return [llength $content]
+} -result 6
+
+test config-2.1 {Reading from file} -body {
+    set fname [file normalize [file join [file dirname [info script]] dummy.lst]]
+    set content [::toclbox::config::read $fname {3 2} "dummy"]
+    return [llength $content]
+} -result 8
+
+cleanupTests
