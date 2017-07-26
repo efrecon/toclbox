@@ -78,32 +78,32 @@ test options-11.1 {Checking removal of option from list} -body {
 test options-20.1 {Checking pulling of options} -body {
     set allargs [list -oneopt -another value -athird itsvalue -- anarg anotherarg]
     ::toclbox::options::pull allargs opts
-    set opts
-} -result {-oneopt -another value -athird itsvalue}
+    return [list $allargs $opts]
+} -result {{anarg anotherarg} {-oneopt -another value -athird itsvalue}}
 
 test options-21.1 {Checking pulling of options, with no arguments} -body {
     set allargs [list -oneopt -another value -athird itsvalue]
     ::toclbox::options::pull allargs opts
-    set opts
-} -result {-oneopt -another value -athird itsvalue}
+    return [list $allargs $opts]
+} -result {{} {-oneopt -another value -athird itsvalue}}
 
 test options-22.1 {Checking pulling of options, with no options} -body {
     set allargs [list -- anarg anotherarg]
     ::toclbox::options::pull allargs opts
-    set opts
-} -result {}
+    return [list $allargs $opts]
+} -result {{anarg anotherarg} {}}
 
-test options-23.1 {Checking pulling of options, without double dash} -body {
-    set allargs [list -oneopt -another value -athird itsvalue -- anarg anotherarg]
+test options-23.1 {Checking pulling of options, with nothing after double dash} -body {
+    set allargs [list -oneopt -another value -athird itsvalue --]
     ::toclbox::options::pull allargs opts
-    set opts
-} -result {-oneopt -another value -athird itsvalue}
+    return [list $allargs $opts]
+} -result {{} {-oneopt -another value -athird itsvalue}}
 
 test options-24.1 {Checking pulling of options, with no options and without double dash} -body {
     set allargs [list anarg anotherarg]
     ::toclbox::options::pull allargs opts
-    set opts
-} -result {}
+    return [list $allargs $opts]
+} -result {{anarg anotherarg} {}}
 
 test options-30.1 {Checking integer} -body {
     set A(-test) 1
