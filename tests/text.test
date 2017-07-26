@@ -5,6 +5,9 @@ if {"::tcltest" ni [namespace children]} {
 
 ::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
 package require toclbox::text
+package require toclbox::log
+
+toclbox::log::verbosity text 0
 
 test text-1.1 {Resolving HOME} -body {
     ::toclbox::text::resolve "%HOME%"

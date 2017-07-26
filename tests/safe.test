@@ -5,6 +5,9 @@ if {"::tcltest" ni [namespace children]} {
 
 ::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
 package require toclbox::safe
+package require toclbox::log
+
+toclbox::log::verbosity safe 0
 
 test safe-1.1 {Aliasing} -body {
     set i [interp create -safe]

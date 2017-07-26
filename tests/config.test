@@ -5,6 +5,9 @@ if {"::tcltest" ni [namespace children]} {
 
 ::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
 package require toclbox::config
+package require toclbox::log
+
+toclbox::log::verbosity config 0
 
 test config-1.1 {Reading from file} -body {
     set fname [file normalize [file join [file dirname [info script]] dummy.lst]]

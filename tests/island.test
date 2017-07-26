@@ -5,6 +5,9 @@ if {"::tcltest" ni [namespace children]} {
 
 ::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
 package require toclbox::island
+package require toclbox::log
+
+toclbox::log::verbosity island 0
 
 test island-1.1 {Accessing our directory} -body {
     set i [interp create -safe]

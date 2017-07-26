@@ -5,6 +5,9 @@ if {"::tcltest" ni [namespace children]} {
 
 ::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
 package require toclbox::firewall
+package require toclbox::log
+
+toclbox::log::verbosity firewall 0
 
 test firewall-1.1 {Accessing all google} -match glob -body {
     set i [interp create -safe]
