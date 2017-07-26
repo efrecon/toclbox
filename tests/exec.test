@@ -1,0 +1,37 @@
+if {"::tcltest" ni [namespace children]} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
+package require toclbox::exec
+package require toclbox::log
+
+toclbox::log::verbosity *exec 0
+
+test exec-1.1 {Returning content} -body {
+    set fname [file normalize [file join [file dirname [info script]] exectester.tcl]]
+    set res [::toclbox::exec::run -return -- [info nameofexecutable] $fname]
+    return $res
+} -result {0 1 2 3 4 5 6 7 8 9}
+
+test exec-2.1 {Returning content, keeping blanks} -body {
+    set fname [file normalize [file join [file dirname [info script]] exectester.tcl]]
+    set res [::toclbox::exec::run -return -keepblanks -- [info nameofexecutable] $fname -blank " "]
+    return $res
+} -result {0 { } 1 { } 2 { } 3 { } 4 { } 5 { } 6 { } 7 { } 8 { } 9 { } {}}
+
+test exec-3.1 {Returning content, raw} -body {
+    set fname [file normalize [file join [file dirname [info script]] exectester.tcl]]
+    set res [::toclbox::exec::run -return -raw -- [info nameofexecutable] $fname -blank " "]
+    return $res
+} -result {0 { } 1 { } 2 { } 3 { } 4 { } 5 { } 6 { } 7 { } 8 { } 9 { } {}}
+
+test exec-4.1 {Returning content, binary} -body {
+    set fname [file normalize [file join [file dirname [info script]] exectester.tcl]]
+    set res [::toclbox::exec::run -return -binary -- [info nameofexecutable] $fname -blank "" -lines 2 -linesep "ö"]
+    return $res
+} -result {0ö1ö}
+
+
+cleanupTests
