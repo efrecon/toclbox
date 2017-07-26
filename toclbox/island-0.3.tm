@@ -45,7 +45,7 @@ namespace eval ::toclbox::island {
 # Side Effects:
 #       None.
 proc ::toclbox::island::add { slave path } {
-    toclbox log notice "Allowing recursive access to $path"
+    debug notice "Allowing recursive access to $path"
     set vname [namespace current]::interps::[string map {: _} $slave]
     if { ![info exists $vname]} {
         Init $slave
