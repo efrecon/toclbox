@@ -159,3 +159,5 @@ test log-31.1 {Testing formating unknown level} -body {
 } -result {\[???????? ??????\] \[--u-n-k-n-o-w-n--\] \[fakemodule\] This is an output} -match glob
 
 
+
+cleanupTests
