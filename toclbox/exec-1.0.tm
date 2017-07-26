@@ -2,16 +2,19 @@ package require Tcl 8.6;  # Necessary for chan pipe
 package require platform
 
 package require toclbox::log
+package require toclbox::options
 
 namespace eval ::toclbox::exec {
     namespace eval command {};  # This will host all commands information
     namespace eval vars {
+        variable -bufsize 16384
         variable signalling 0; # Forward signals (need Tclx see require below)
         variable generator 0;  # Generator for identifiers, own implementation to keep order
     }
     namespace export {[a-z]*}
     namespace import [namespace parent]::log::debug
     namespace import [namespace parent]::options::parse
+    namespace import [namespace parent]::options::pull
     namespace ensemble create -command ::toclexec
 }
 
@@ -116,6 +119,7 @@ proc ::toclbox::exec::LineRead { c fd {chunks -1}} {
     # we are done.
     if { [eof $CMD($fd)] } {
 	fileevent $CMD($fd) readable {}
+        debug TRACE "EOF reached on $fd"
 	if { ( $CMD(stdout) eq "" || [fileevent $CMD(stdout) readable] eq "" ) \
 		 && ( $CMD(stderr) eq "" || [fileevent $CMD(stderr) readable] eq "" ) } {
 	    set CMD(done) 1
@@ -176,13 +180,7 @@ proc ::toclbox::exec::run { args } {
     # Isolate -- that will separate options to procedure from options
     # that would be for command.  Using -- is MANDATORY if you want to
     # specify options to the procedure.
-    set sep [lsearch $args "--"]
-    if { $sep >= 0 } {
-        set opts [lrange $args 0 [expr {$sep-1}]]
-        set args [lrange $args [expr {$sep+1}] end]
-    } else {
-        set opts [list]
-    }
+    pull args opts
 
     # Create an array global to the namespace that we'll use for
     # synchronisation and context storage.
@@ -219,7 +217,7 @@ proc ::toclbox::exec::run { args } {
         set CMD(pid) [pid $CMD(stdout)]
         if { $CMD(binary) } {
             fconfigure $CMD(stdout) -encoding binary -translation binary
-            fileevent $CMD(stdout) readable [namespace code [list LineRead $c stdout 16384]]
+            fileevent $CMD(stdout) readable [namespace code [list LineRead $c stdout ${vars::-bufsize}]]
         } else {
             fileevent $CMD(stdout) readable [namespace code [list LineRead $c stdout]]            
         }
@@ -227,7 +225,7 @@ proc ::toclbox::exec::run { args } {
         lassign [POpen4 {*}$args] CMD(pid) CMD(stdin) CMD(stdout) CMD(stderr)
         if { $CMD(binary) } {
             fconfigure $CMD(stdout) -encoding binary -translation binary
-            fileevent $CMD(stdout) readable [namespace code [list LineRead $c stdout 16384]]
+            fileevent $CMD(stdout) readable [namespace code [list LineRead $c stdout ${vars::-bufsize}]]
         } else {
             fileevent $CMD(stdout) readable [namespace code [list LineRead $c stdout]]            
         }
