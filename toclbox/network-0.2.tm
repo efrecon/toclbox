@@ -9,7 +9,8 @@ package require toclbox::options
 namespace eval ::toclbox::network {
     namespace eval vars {
         variable -resolution on
-        variable -redirects 20;   # Maximum number of redirects that we follow (negative for infinite)
+        variable -redirects  20;   # Maximum number of redirects that we follow (negative for infinite)
+        variable version     [lindex [split [file rootname [file tail [info script]]] -] end]
     }
     namespace export {[a-z]*}
     namespace import [namespace parent]::log::debug
@@ -275,3 +276,5 @@ proc ::toclbox::network::B64en {str} {
         111100 8 111101 9 111110 + 111111 /
     } $bits]$tail    
 }
+
+package provide toclbox::network $::toclbox::network::vars::version

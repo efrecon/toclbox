@@ -5,8 +5,9 @@ package require toclbox::log
 namespace eval ::toclbox::control {
     namespace eval vars {
         variable generator  0
-	variable -clamp     4
+        variable -clamp     4
         variable -separator ""
+        variable version    [lindex [split [file rootname [file tail [info script]]] -] end]
     }
     namespace export {[a-z]*}
     namespace import [namespace parent]::log::debug
@@ -45,9 +46,9 @@ proc ::toclbox::control::identifier { {pfx "" } } {
     # the timestamp at the beginning to maximise the chances to fail.
     if { $pfx ne "" } {set id [list $pfx] }
     lappend id \
-        [format "%.${vars::-clamp}d" $now] \
-        [format "%.${vars::-clamp}d" $vars::host] \
-        [format "%.${vars::-clamp}d" $unique]
+            [format "%.${vars::-clamp}d" $now] \
+            [format "%.${vars::-clamp}d" $vars::host] \
+            [format "%.${vars::-clamp}d" $unique]
     return [join $id ${vars::-separator}]
 }
 
@@ -72,11 +73,11 @@ proc ::toclbox::control::identifier { {pfx "" } } {
 #       None.
 proc ::toclbox::control::dispatch { obj ns method args} {
     if { [string match \[a-z\] [string index $method 0]] } {
-	if { [info commands ${ns}::${method}] eq "" } {
-	    return -code error "Cannot find $method in $ns!"
-	}
+        if { [info commands ${ns}::${method}] eq "" } {
+            return -code error "Cannot find $method in $ns!"
+        }
     } else {
-	return -code error "$method is internal to $ns!"
+        return -code error "$method is internal to $ns!"
     }
     namespace inscope $ns $method $obj {*}$args
 }
@@ -84,11 +85,11 @@ proc ::toclbox::control::dispatch { obj ns method args} {
 
 proc ::toclbox::control::rdispatch { obj ns methods method args} {
     foreach meths $methods {
-	foreach m $meths {
-	    if { [string equal $m $method] } {
-		return [dispatch $obj $ns [lindex $meths 0] {*}$args]
-	    }
-	}
+        foreach m $meths {
+            if { [string equal $m $method] } {
+                return [dispatch $obj $ns [lindex $meths 0] {*}$args]
+            }
+        }
     }
     return -code error "$method is not allowed in $ns!"
 }
@@ -96,20 +97,20 @@ proc ::toclbox::control::rdispatch { obj ns methods method args} {
 
 proc ::toclbox::control::mset { ns varvals {pfx ""} } {
     foreach {k v} $varvals {
-	if { $pfx ne "" } {
-	    set k ${pfx}[string trimleft $k $pfx]
-	}
-	if { [info exists ${ns}::${k}] } {
-	    set ${ns}::${k} $v
-	}
+        if { $pfx ne "" } {
+            set k ${pfx}[string trimleft $k $pfx]
+        }
+        if { [info exists ${ns}::${k}] } {
+            set ${ns}::${k} $v
+        }
     }
-
+    
     set state {}
     foreach v [info vars ${ns}::${pfx}*] {
-	lappend state [lindex [split $v ":"] end] [set $v]
+        lappend state [lindex [split $v ":"] end] [set $v]
     }
     return $state
-} 
+}
 
 # From http://wiki.tcl.tk/38650
 proc ::toclbox::control::alias { alias target { force 0 } } {
@@ -124,18 +125,18 @@ proc ::toclbox::control::alias { alias target { force 0 } } {
     set save [namespace eval $destination {namespace export}]
     namespace eval $destination {namespace export *}
     while {[namespace exists [
-        set tmpns [namespace current]::[info cmdcount]]]} {}
+    set tmpns [namespace current]::[info cmdcount]]]} {}
     set code [catch {set newcmd [namespace eval $tmpns [
         string map [list @{fulltarget} [list $fulltarget]] {
-        namespace import @{fulltarget}
-    }]]} cres copts]
+            namespace import @{fulltarget}
+        }]]} cres copts]
     namespace eval $destination [list namespace export {*}$save]
     if {$code} {
         return -options $copts $cres
     }
     uplevel [list rename ${tmpns}::[namespace tail $target] $alias]
-    namespace delete $tmpns 
-    return [uplevel [list namespace which $alias]]    
+    namespace delete $tmpns
+    return [uplevel [list namespace which $alias]]
 }
 
-package provide toclbox::control 1.0
+package provide toclbox::control $::toclbox::control::vars::version

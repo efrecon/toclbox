@@ -16,14 +16,16 @@ package require toclbox::safe
 
 namespace eval ::toclbox::firewall {
     namespace eval interps {};   # Will host information for interpreters
-    namespace export {[a-z]*};   # Convention: export all lowercase 
+    namespace export {[a-z]*};   # Convention: export all lowercase
+    namespace eval vars {
+        variable version       [lindex [split [file rootname [file tail [info script]]] -] end]        
+    }
     namespace import [namespace parent]::log::debug
     namespace import \
             [namespace parent]::safe::alias \
 			[namespace parent]::safe::unalias \
 			[namespace parent]::safe::invoke
     namespace ensemble create -command ::toclfirewall
-    variable version 0.1
 }
 
 
@@ -237,4 +239,4 @@ proc ::toclbox::firewall::Init { slave } {
 
 
 
-package provide firewall $::toclbox::firewall::version
+package provide firewall $::toclbox::firewall::vars::version

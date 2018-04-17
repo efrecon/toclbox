@@ -7,9 +7,10 @@ package require toclbox::options
 namespace eval ::toclbox::exec {
     namespace eval command {};  # This will host all commands information
     namespace eval vars {
-        variable -bufsize 16384
+        variable -bufsize   16384
         variable signalling 0; # Forward signals (need Tclx see require below)
-        variable generator 0;  # Generator for identifiers, own implementation to keep order
+        variable generator  0;  # Generator for identifiers, own implementation to keep order
+        variable version    [lindex [split [file rootname [file tail [info script]]] -] end]
     }
     namespace export {[a-z]*}
     namespace import [namespace parent]::log::debug
@@ -251,4 +252,4 @@ proc ::toclbox::exec::run { args } {
 }
 
 
-package provide toclbox::exec 1.0
+package provide toclbox::exec $::toclbox::exec::vars::version

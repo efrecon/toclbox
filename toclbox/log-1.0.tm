@@ -4,11 +4,12 @@ package require toclbox::common
 
 namespace eval ::toclbox::log {
     namespace eval vars {
-	variable -tags    {1 CRITICAL 2 ERROR 3 WARN 4 NOTICE 5 INFO 6 DEBUG 7 TRACE}
-	variable -header  "\[%Y%m%d %H%M%S\] \[%lvl%\] \[%pkg%\] "
-	variable -verbose {* 5}
-	variable dbgfd    stderr
+        variable -tags    {1 CRITICAL 2 ERROR 3 WARN 4 NOTICE 5 INFO 6 DEBUG 7 TRACE}
+        variable -header  "\[%Y%m%d %H%M%S\] \[%lvl%\] \[%pkg%\] "
+        variable -verbose {* 5}
+        variable dbgfd    stderr
         variable unknown  --U-N-K-N-O-W-N--
+        variable version  [lindex [split [file rootname [file tail [info script]]] -] end]
     }
     namespace export {[a-z]*}
     namespace ensemble create -command ::tocllog
@@ -195,4 +196,4 @@ proc ::toclbox::log::Level { lvl } {
 
 
 
-package provide toclbox::log 1.0
+package provide toclbox::log $::toclbox::log::vars::version

@@ -29,9 +29,9 @@ test exec-3.1 {Returning content, raw} -body {
 
 test exec-4.1 {Returning content, binary} -body {
     set fname [file normalize [file join [file dirname [info script]] exectester.tcl]]
-    set res [::toclbox::exec::run -return -binary -- [info nameofexecutable] $fname -blank "" -lines 2 -linesep "ö"]
+    set res [::toclbox::exec::run -return -binary -- [info nameofexecutable] $fname -blank "" -lines 2 -binary on -linesep "ö"]
     return $res
-} -result {0ö1ö}
+} -result "0ö1ö"
 
 
 cleanupTests

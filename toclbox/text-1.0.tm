@@ -6,10 +6,11 @@ package require toclbox::config
 
 namespace eval ::toclbox::text {
     namespace eval vars {
-	variable -resolve     10
-	variable -separator   {/ |}
+        variable -resolve     10
+        variable -separator   {/ |}
         variable -ellipsis    "(..)"
-		variable -offload     "@"
+        variable -offload     "@"
+        variable version       [lindex [split [file rootname [file tail [info script]]] -] end]
     }
     namespace export {[a-z]*}
     namespace import [namespace parent]::log::debug
@@ -328,4 +329,4 @@ proc ::toclbox::text::human { val {max 20} } {
 }
 
 
-package provide toclbox::text 1.0
+package provide toclbox::text $::toclbox::text::vars::version

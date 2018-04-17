@@ -17,9 +17,11 @@ package require toclbox::log
 namespace eval ::toclbox::safe {
     namespace eval interps {};   # Will host information for interpreters
     namespace export {[a-z]*};   # Convention: export all lowercase 
+    namespace eval vars {
+        variable version       [lindex [split [file rootname [file tail [info script]]] -] end]
+    }
     namespace import [namespace parent]::log::debug
     namespace ensemble create -command ::toclsafe
-    variable version 0.1
 }
 
 
@@ -241,4 +243,4 @@ proc ::toclbox::safe::LoadCommand {name {version ""}} {
     }
 }
 
-package provide toclbox::safe $::toclbox::safe::version
+package provide toclbox::safe $::toclbox::safe::vars::version

@@ -9,6 +9,7 @@ namespace eval ::toclbox::sys {
         variable -ps       "ps"
         variable -tasklist "tasklist"
         variable -taskkill "taskkill"
+        variable version   [lindex [split [file rootname [file tail [info script]]] -] end]
     }
     namespace export {[a-z]*}
     namespace import [namespace parent]::log::debug
@@ -138,4 +139,4 @@ proc ::toclbox::sys::deadly { signal { forcefully off } } {
     return 0
 }
 
-package provide toclbox::sys 1.0
+package provide toclbox::sys $::toclbox::sys::vars::version

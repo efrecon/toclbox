@@ -6,6 +6,7 @@ namespace eval ::toclbox::common {
 	variable -subst     {% @ ~}
         variable -storage   {vars gvars};  # sub-namespace where we store defaults, by convention
         variable -marker    -;             # Leading single character marker for name of options, by convention
+        variable version       [lindex [split [file rootname [file tail [info script]]] -] end]        
     }
     namespace export {[a-z]*}
 }
@@ -180,4 +181,4 @@ proc ::toclbox::common::pdict {dict {pattern *} {channel "stdout"}} {
 }
 
 
-package provide toclbox::common 1.0
+package provide toclbox::common $::toclbox::common::vars::version

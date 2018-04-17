@@ -25,6 +25,7 @@ namespace eval ::toclbox::url {
             $
         }
         variable ports {http 80 https 443 ftp 21 imap 143 gopher 70 nntp 119 telnet 23 }
+        variable version       [lindex [split [file rootname [file tail [info script]]] -] end]
     }
     namespace export {[a-z]*}
     namespace import [namespace parent]::log::debug
@@ -249,3 +250,5 @@ proc ::toclbox::url::Init { { force off } } {
         array set vars::map { " " + \n %0d%0a }        
     }
 }
+
+package provide toclbox::url $::toclbox::url::vars::version

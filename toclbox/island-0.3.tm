@@ -18,13 +18,15 @@ package require toclbox::safe
 namespace eval ::toclbox::island {
     namespace eval interps {};   # Will host information for interpreters
     namespace export {[a-z]*};   # Convention: export all lowercase 
+    namespace eval vars {
+        variable version       [lindex [split [file rootname [file tail [info script]]] -] end]        
+    }
     namespace import [namespace parent]::log::debug
     namespace import \
             [namespace parent]::safe::alias \
 			[namespace parent]::safe::unalias \
 			[namespace parent]::safe::invoke
     namespace ensemble create -command ::toclisland
-    variable version 0.3
 }
 
 
@@ -69,8 +71,11 @@ proc ::toclbox::island::add { slave path } {
 # Side Effects:
 #       None.
 proc ::toclbox::island::reset { slave } {
-    foreach cmd [list file fconfigure cd glob open] {
-        unalias $slave $cmd
+    set vname [namespace current]::interps::[string map {: _} $slave]
+    if { [info exists $vname]} {
+        foreach cmd [list file fconfigure cd glob open] {
+            unalias $slave $cmd
+        }
     }
 }
 
@@ -329,4 +334,4 @@ proc ::toclbox::island::Init { slave } {
 }
 
 
-package provide toclbox::island $::toclbox::island::version
+package provide toclbox::island $::toclbox::island::vars::version

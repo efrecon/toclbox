@@ -5,7 +5,8 @@ package require toclbox::log
 namespace eval ::toclbox::config {
     namespace eval vars {
         variable -comments  "\#"
-	variable -empty     {\"\" \{\} -}
+	    variable -empty     {\"\" \{\} -}
+        variable version    [lindex [split [file rootname [file tail [info script]]] -] end]
     }
     namespace export {[a-z]*}
     namespace import [namespace parent]::log::debug
@@ -118,4 +119,4 @@ proc ::toclbox::config::LKeep { vals dividers type } {
 }
 
 
-package provide toclbox::config 1.0
+package provide toclbox::config $::toclbox::config::vars::version
