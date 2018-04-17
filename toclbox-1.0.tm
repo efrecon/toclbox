@@ -3,7 +3,7 @@ package require Tcl 8.5
 namespace eval ::toclbox {}
 
 # Require all packages that are only 8.5 dependent.
-foreach pkg [list config control log options text network url safe island firewall] {
+foreach pkg [list config control log options text network url safe island firewall templater] {
     package require toclbox::$pkg
 }
 
@@ -64,7 +64,7 @@ if { [catch {package require Tcl 8.6} ver] == 0 } {
     ::toclbox::control::alias ::toclbox::processes ::toclbox::sys::processes 1
     ::toclbox::control::alias ::toclbox::signal ::toclbox::sys::signal 1
     ::toclbox::control::alias ::toclbox::kill ::toclbox::sys::signal 1
-    ::toclbox::control::alias ::toclbox::deadly ::toclbox::sys::deadly 1    
+    ::toclbox::control::alias ::toclbox::deadly ::toclbox::sys::deadly 1
 }
 
 # Export all lower-cased commands and make an ensemble to ease access to

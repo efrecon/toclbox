@@ -1,0 +1,82 @@
+if {"::tcltest" ni [namespace children]} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
+package require toclbox::templater
+package require toclbox::log
+
+toclbox::log::verbosity templater 0
+
+test templater-1.1 {Creation} -match glob -body {
+    set t [::toclbox::templater::new]
+    info commands $t
+} -result ::toclbox::templater::* -cleanup {
+}
+
+test templater-1.1 {Deletion} -body {
+    set t [::toclbox::templater::new]
+    $t delete
+    info commands $t
+} -result {} -cleanup {
+}
+
+test templater-3.1 {Setting variable} -body {
+    set t [::toclbox::templater::new]
+    $t setvar __test 123456
+} -result {123456} -cleanup {
+    $t delete
+}
+
+test templater-3.1 {Getting variable} -body {
+    set t [::toclbox::templater::new]
+    $t setvar __test 123456
+    $t getvar __test
+} -result {123456} -cleanup {
+    $t delete
+}
+
+test templater-3.2 {Getting variable using set} -body {
+    set t [::toclbox::templater::new]
+    $t setvar __test 123456
+    $t setvar __test
+} -result {123456} -cleanup {
+    $t delete
+}
+
+test templater-4.1 {Templating empty} -body {
+    set t [::toclbox::templater::new]
+    $t parse ""
+    $t render
+} -result {} -cleanup {
+    $t delete
+}
+
+test templater-5.1 {Templating clean text} -body {
+    set t [::toclbox::templater::new]
+    $t parse "123456"
+    $t render
+} -result {123456} -cleanup {
+    $t delete
+}
+
+test templater-6.1 {Using variable} -body {
+    set t [::toclbox::templater::new]
+    $t setvar __test 123456
+    $t parse "<%=\$__test%>"
+    $t render
+} -result {123456} -cleanup {
+    $t delete
+}
+
+test templater-7.1 {Code} -body {
+    set t [::toclbox::templater::new]
+    $t setvar __test 123456
+    $t parse "<%if \{\$__test eq 123456\} \{%>654321<%\}%>"
+    $t render
+} -result {654321} -cleanup {
+    $t delete
+}
+
+cleanupTests
