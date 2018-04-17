@@ -45,6 +45,9 @@ test text-9.1 {Testing program-dependent keys} -body {
     ::toclbox::text::resolve "%progdir%/~prgname~"
 } -result "[file normalize [file dirname $::argv0]]/[file rootname [file tail $::argv0]]"
 
+test text-9.2 {Testing program-dependent true locations keys} -body {
+    ::toclbox::text::resolve "%bindir%/~binname~"
+} -result "[file normalize [file dirname $::argv0]]/[file rootname [file tail $::argv0]]"
 
 test text-10.1 {Testing split protection} -body {
     ::toclbox::text::split {a/path/to\/test/thi\/ngs/out} /

@@ -92,10 +92,13 @@ proc ::toclbox::text::Keys { {keys {}} } {
 	}
     }
     set fullpath [fullpath]
+    set binpath [file dirname [file normalize [file join $fullpath ___]]];  # Resolve last symlink
     lappend mapper progdir [file dirname $fullpath]
     lappend mapper prgdir [file dirname $fullpath]
+    lappend mapper bindir [file dirname $binpath]
     lappend mapper progname [file rootname [file tail $fullpath]]
     lappend mapper prgname [file rootname [file tail $fullpath]]
+    lappend mapper binname [file rootname [file tail $binpath]]
 
     return $mapper
 }
