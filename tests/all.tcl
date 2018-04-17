@@ -1,3 +1,5 @@
+#!/usr/bin/env tclsh
+
 package prefer latest
 package require Tcl
 package require tcltest 2.2
