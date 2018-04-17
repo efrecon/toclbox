@@ -36,7 +36,11 @@ proc ::toclbox::common::fullpath { {fullpath ""} } {
     }
     
     if { $vars::fullpath eq "" } {
-        set vars::fullpath [file normalize $argv0]
+        if { [info exists ::starkit::topdir] } {
+            set vars::fullpath [file normalize $::starkit::topdir]
+        } else {
+            set vars::fullpath [file normalize $argv0]
+        }
     }
     
     return $vars::fullpath
