@@ -3,6 +3,7 @@ package require Tcl 8.5
 package require toclbox::common
 
 namespace eval ::toclbox::log {
+    namespace eval hijack {};   # Will contain hijacked logger relay procedures
     namespace eval vars {
         variable -tags    {1 CRITICAL 2 ERROR 3 WARN 4 NOTICE 5 INFO 6 DEBUG 7 TRACE}
         variable -header  "\[%Y%m%d %H%M%S\] \[%lvl%\] \[%pkg%\] "
@@ -55,34 +56,99 @@ proc ::toclbox::log::format { lvl pkg output } {
 #       Write message onto debug file descriptor, if applicable.
 proc ::toclbox::log::debug { lvl output { pkg "" } } {
     set lvl [Level $lvl]
-
+    
     if { $pkg eq "" } {
-	set pkg [lindex [split [string trim [uplevel 1 namespace current] ":"] ":"] end]
-	if { $pkg eq "" } {
-	    set pkg [file rootname [file tail [fullpath]]]
-	}
+        set pkg [lindex [split [string trim [uplevel 1 namespace current] ":"] ":"] end]
+        if { $pkg eq "" } {
+            set pkg [file rootname [file tail [fullpath]]]
+        }
     }
-
+    
     foreach { ptn verbosity } ${vars::-verbose} {
-	if { [string match $ptn $pkg] } {
-	    if {[Level $verbosity] >= $lvl } {
-		if { [string index $vars::dbgfd 0] eq "@" } {
-		    set cmd [string range $vars::dbgfd 1 end]
-		    if { [catch {eval [linsert $cmd end $lvl $pkg $output]} err] } {
-			puts stderr "Cannot callback external log command: $err"
-		    }
-		} else {
-		    set line [format $lvl $pkg $output]
-		    if { $line ne "" } {
-			puts $vars::dbgfd $line
-		    }
-		}
-	    }
-	    return
-	}
+        if { [string match $ptn $pkg] } {
+            if {[Level $verbosity] >= $lvl } {
+                if { [string index $vars::dbgfd 0] eq "@" } {
+                    set cmd [string range $vars::dbgfd 1 end]
+                    if { [catch {eval [linsert $cmd end $lvl $pkg $output]} err] } {
+                        puts stderr "Cannot callback external log command: $err"
+                    }
+                } else {
+                    set line [format $lvl $pkg $output]
+                    if { $line ne "" } {
+                        puts $vars::dbgfd $line
+                    }
+                }
+            }
+            return
+        }
     }
 }
 
+
+# ::toclbox::log::hijack -- Hijack logger output
+#
+#       This procedure hijacks the tcllib logger module in the sense that it
+#       arranges for all services that are declared within the logger module (if
+#       present and required) to be passed through the services of this module
+#       instead. Debugging levels are automatically translated.
+#
+# Arguments:
+#       None.
+#
+# Results:
+#       Returns the list of logger services that were hijacked properly
+#
+# Side Effects:
+#       This creates as many procedures as necessary under a children namespace
+#       to relay between the logger output procedure facility and the debug
+#       command.
+proc ::toclbox::log::hijack {} {
+    set hijacked [list]
+    if { [catch {logger::services} services] == 0 } {
+        foreach s $services {
+            if { [string first ":" $s] >= 0 } {
+                debug WARN "Cannot hijack namespaced services!"
+            } else {
+                set log [logger::servicecmd $s]
+                foreach l [logger::levels] {
+                    # The logger module is only able to work with procedures
+                    # (NOT commands) when registering commands for performing
+                    # the logging. So we create a procedure for each level and
+                    # service under a children namespace and register that
+                    # procedure as the logging procedure. We arrange for the
+                    # name of the procedure to reflect the service and level.
+                    proc [namespace current]::hijack::${l}_$s {txt} {
+                        # Re-extract the log level and service out of the name
+                        # of the procedure
+                        set procname [lindex [info level 0] 0]
+                        set spec [lindex [split $procname :] end]
+                        set underscore [string first "_" $spec]
+                        set lvl [string range $spec 0 [expr {$underscore-1}]]
+                        set service [string range $spec [expr {$underscore+1}] end]
+                        # Convert between logging levels of the two modules.
+                        set l [string map [list debug DEBUG \
+                                                info INFO \
+                                                notice NOTICE \
+                                                warn WARN \
+                                                error ERROR \
+                                                critical CRITICAL \
+                                                alert CRITICAL \
+                                                emergency CRITICAL] [string tolower $lvl]]
+                        # Should we uplevel here?
+                        [namespace parent]::debug $l $txt $service
+                    }
+
+                    ${log}::logproc $l [namespace current]::hijack::${l}_$s
+                }
+                lappend hijacked $s
+            }
+        }
+    } else {
+        debug WARN "Cannot hijack tcllib logger module, make sure package is present!"
+    }
+
+    return $hijacked
+}
 
 # ::utils::logger -- Arrange to output log to file (descriptor)
 #
@@ -102,34 +168,34 @@ proc ::toclbox::log::debug { lvl output { pkg "" } } {
 #       None.
 proc ::toclbox::log::logger { { fd_or_n "" } } {
     if { $fd_or_n ne "" } {
-	if { [string index $fd_or_n 0] eq "@" } {
-	    set fd $fd_or_n
-	} else {
-	    # Open file for appending if it is a file, otherwise consider the
-	    # argument as a file descriptor.
-	    if { [catch {fconfigure $fd_or_n}] } {
-		debug 3 "Appending log to $fd_or_n"
-		if { [catch {open $fd_or_n a} fd] } {
-		    debug 2 "Could not open $fd_or_n: $fd"
-		    return -code error "Could not open $fd_or_n: $fd"
-		}
-	    } else {
-		set fd $fd_or_n
-	    }
-	}
-    
-	# Close previous debug file descriptor if it was not a standard
-	# one and setup new one.
-	if { ![string match std* $vars::dbgfd] } {
-	    catch {close $vars::dbgfd}
-	}
-	if { [string index $fd 0] ne "@" } {
-	    fconfigure $fd -buffering line
-	}
-	set vars::dbgfd $fd
-	debug 3 "Log output successfully changed to new target"        
+        if { [string index $fd_or_n 0] eq "@" } {
+            set fd $fd_or_n
+        } else {
+            # Open file for appending if it is a file, otherwise consider the
+            # argument as a file descriptor.
+            if { [catch {fconfigure $fd_or_n}] } {
+                debug 3 "Appending log to $fd_or_n"
+                if { [catch {open $fd_or_n a} fd] } {
+                    debug 2 "Could not open $fd_or_n: $fd"
+                    return -code error "Could not open $fd_or_n: $fd"
+                }
+            } else {
+                set fd $fd_or_n
+            }
+        }
+        
+        # Close previous debug file descriptor if it was not a standard
+        # one and setup new one.
+        if { ![string match std* $vars::dbgfd] } {
+            catch {close $vars::dbgfd}
+        }
+        if { [string index $fd 0] ne "@" } {
+            fconfigure $fd -buffering line
+        }
+        set vars::dbgfd $fd
+        debug 3 "Log output successfully changed to new target"
     }
-
+    
     return $vars::dbgfd
 }
 
@@ -153,16 +219,16 @@ proc ::toclbox::log::verbosity { args } {
     set old ${vars::-verbose}
     set vars::-verbose {}
     foreach { spec lvl } $args {
-	set lvl [Level $lvl]
-	if { [string is integer $lvl] && $lvl >= 0 } {
-	    lappend vars::-verbose $spec $lvl
-	}
+        set lvl [Level $lvl]
+        if { [string is integer $lvl] && $lvl >= 0 } {
+            lappend vars::-verbose $spec $lvl
+        }
     }
     
     if { $old ne ${vars::-verbose} } {
-	debug 4 "Changed module verbosity to: ${vars::-verbose}"
+        debug 4 "Changed module verbosity to: ${vars::-verbose}"
     }
-
+    
     return $old
 }
 
@@ -183,17 +249,15 @@ proc ::toclbox::log::verbosity { args } {
 #       None.
 proc ::toclbox::log::Level { lvl } {
     if { ![string is integer $lvl] } {
-	foreach {l str} ${vars::-tags} {
-	    if { [string match -nocase $str $lvl] } {
-		return $l
-	    }
-	}
-	return -1
+        foreach {l str} ${vars::-tags} {
+            if { [string match -nocase $str $lvl] } {
+                return $l
+            }
+        }
+        return -1
     }
     return $lvl
 }
-
-
 
 
 package provide toclbox::log $::toclbox::log::vars::version

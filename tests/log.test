@@ -6,6 +6,7 @@ if {"::tcltest" ni [namespace children]} {
 ::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
 package require toclbox::log
 package require toclbox::common
+testConstraint logger [expr {[catch {package require logger} ver] == 0}]
 
 test log-1.1 {Check default log} -body {
     toclbox::log::logger
@@ -158,6 +159,15 @@ test log-31.1 {Testing formating unknown level} -body {
     toclbox::log::format VIP fakemodule "This is an output"
 } -result {\[???????? ??????\] \[--u-n-k-n-o-w-n--\] \[fakemodule\] This is an output} -match glob
 
-
+test log-32.1 {Testing logger hijack} -constraints logger -body {
+    set ::__oldverbose [toclbox::log::verbosity]
+    set log [logger::init loggerTest]
+    toclbox::log::verbosity loggerTest DEBUG
+    toclbox::log::hijack
+    ${log}::debug "This is an output"
+} -cleanup {
+    toclbox::log::verbosity $::__oldverbose
+    unset ::__oldverbose
+} -errorOutput "*This is an output*" -match glob
 
 cleanupTests
