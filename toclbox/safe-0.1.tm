@@ -129,6 +129,11 @@ proc ::toclbox::safe::environment { slave {allow *} {deny {}} {glbl env}} {
     }
 }
 
+proc ::toclbox::safe::envset { slave varname {value ""} {glbl env}} {
+    debug NOTICE "Setting $varname in global $glbl"
+    $slave eval [list set ::${glbl}($varname) $value]
+}
+
 proc ::toclbox::safe::package { slave pkg { version ""} } {
     debug NOTICE "Loading $pkg into slave"
     set cmds [LoadCommand $pkg $version]
