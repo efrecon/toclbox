@@ -8,8 +8,10 @@ package require toclbox::options
 
 namespace eval ::toclbox::network {
     namespace eval vars {
+        variable tls_socket -;    # Actively discovered TLS socket command
         variable -resolution on
-        variable -redirects  20;   # Maximum number of redirects that we follow (negative for infinite)
+        variable -protos {ssl2 0 ssl3 0 tls1 1 tls1.1 1 tls1.2 1}
+        variable -redirects 20;   # Maximum number of redirects that we follow (negative for infinite)
         variable version     [lindex [split [file rootname [file tail [info script]]] -] end]
     }
     namespace export {[a-z]*}
@@ -18,6 +20,53 @@ namespace eval ::toclbox::network {
     namespace ensemble create -command ::toclnet
 }
 
+
+proc ::toclbox::network::tls_socket { {protos {}} } {
+    # We have a cache and are requesting the default set of protos, return the
+    # value of the cache!
+    if { [llength $protos] == 0 && $vars::tls_socket ne "-" } {
+        return $vars::tls_socket
+    }
+
+    # Initialise which TLS protocols to query TLS implementation for
+    set reqprotos $protos
+    if { [llength $protos] == 0 } { set protos ${vars::-protos} }
+
+    # Build TLS socket command, make sure to cover SNI and actively test the
+    # protocols.
+    set cmd [list]
+    if { [catch {package require tls} ver] == 0 } {
+        set cmd [list ::tls::socket]
+
+        # First detect presence of servername (for SNI) and re-route to internal
+        # command triggering SNI if relevant.
+        if { [catch {::tls::socket -servername "toclbox" localhost 0} err] } {
+            if { [string match "couldn't open socket*" $err] } {
+                set cmd [list [namespace current]::SecureSocket]
+            }
+        }
+        
+        # Now detect which of the requested protocols are actually available.
+        foreach {opt dft} $protos {
+            if { [catch {::tls::socket -$opt 1 localhost 0} err] } {
+                if { [string match "couldn't open socket*" $err] } {
+                    lappend cmd -$opt $dft
+                }
+            }
+        }
+
+        debug INFO "Using $cmd for establishing TLS connections"
+    } else {
+        debug WARN "No TLS package available for secured connections!"
+    }
+
+    # Cache information if relevant.
+    if { [llength $reqprotos] == 0 } {
+        set vars::tls_socket $cmd
+    }
+
+    return $cmd
+}
 
 # ::toclbox::network::https -- Backwards-compatible HTTPS support
 #
@@ -36,28 +85,9 @@ namespace eval ::toclbox::network {
 #
 # Side Effects:
 #       None.
-proc ::toclbox::network::https { {protos {ssl2 0 ssl3 0 tls1 1 tls1.1 1 tls1.2 1}} } {
-    if { [catch {package require tls} ver] == 0 } {
-        set cmd [list ::tls::socket]
-
-        # First detect presence of servername (for SNI) and re-route to internal
-        # command triggering SNI if relevant.
-        if { [catch {::tls::socket -servername "toclbox" localhost 0} err] } {
-            if { [string match "couldn't open socket*" $err] } {
-                set cmd [list [namespace current]::SecureSocket]
-            }
-        }
-        
-        # Now detect which of the requested protocols are actually available.
-        foreach {opt dft} $protos {
-            if { [catch {::tls::socket -$opt 1 localhost 0} err] } {
-                 if { [string match "couldn't open socket*" $err] } {
-                     lappend cmd -$opt $dft
-                 }
-            }
-        }
-        
-        debug INFO "Using $cmd for establishing HTTPS connections"
+proc ::toclbox::network::https { {protos {}} } {
+    set cmd [tls_socket $protos]
+    if { [llength $cmd] } {
         return [::http::register https 443 $cmd]
     }
     
