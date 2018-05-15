@@ -144,11 +144,11 @@ proc ::toclbox::templater::getvar { t var } {
 
 proc ::toclbox::templater::render { t } {
     set txt ""
-    if { [set ${t}::fname] ne "" } {
-        if { [file mtime [set ${t}::fname]] != [set ${t}::mtime] } {
-            debug 3 "Linked file [set ${t}::fname] modified,\
+    if { [set ${t}::fpath] ne "" } {
+        if { [file mtime [set ${t}::fpath]] != [set ${t}::mtime] } {
+            debug 3 "Linked file [set ${t}::fpath] modified,\
                      reading again its content"
-            LinkFile $t [set ${t}::fname]
+            LinkFile $t [set ${t}::fpath]
         }
     }
     
@@ -188,7 +188,7 @@ proc ::toclbox::templater::LinkFile { t fname } {
     close $fd
     
     if { [parse $t $txt] } {
-        set ${t}::fname $fname
+        set ${t}::fname $fpath
         set ${t}::mtime [file mtime $fname]
     }
 }
@@ -196,20 +196,20 @@ proc ::toclbox::templater::LinkFile { t fname } {
 
 proc ::toclbox::templater::link { t { fname "" } } {
     if { $fname ne "" } {
-        if { [set ${t}::fname] eq "" } {
+        if { [set ${t}::fpath] eq "" } {
             LinkFile $t $fname
-        } elseif { [set ${t}::fname] ne $fname } {
+        } elseif { [set ${t}::fpath] ne $fname } {
             LinkFile $t $fname
         }
     }
     
-    return [set ${t}::fname]
+    return [set ${t}::fpath]
 }
 
 
 proc ::toclbox::templater::unlink { t } {
-    debug 4 "Unlinking previously linked file [set ${t}::fname]"
-    namespace inscope $t set fname ""
+    debug 4 "Unlinking previously linked file [set ${t}::fpath]"
+    namespace inscope $t set fpath ""
     namespace inscope $t set mtime ""
 }
 
@@ -240,13 +240,13 @@ proc ::toclbox::templater::config { t args } {
 proc ::toclbox::templater::new { args } {
     variable TPL
     
-    set t [identifier [namespace current]::templater::]
+    set t [identifier [namespace current]::tpl]
     # Create namespace to hold templating information and initialise variables.
     namespace eval $t {};
     namespace inscope $t set interp ""
     namespace inscope $t set code ""
     namespace inscope $t set initvars [list]
-    namespace inscope $t set fname ""
+    namespace inscope $t set fpath ""
     namespace inscope $t set mtime ""
     
     eval config $t $args
