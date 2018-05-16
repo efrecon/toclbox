@@ -94,8 +94,8 @@ proc ::toclbox::templater::Init { t { force off } } {
         set ${t}::interp [interp create -safe -- \
                                 [identifier [namespace current]::Interp]]
         set itrp [set ${t}::interp]
-        $itrp alias puts [namespace code PutS]
-        $itrp alias source [namespace code [list Source $t]]
+        $itrp alias puts [namespace current]::PutS
+        $itrp alias source [namespace current]::Source $t
         set ${t}::initvars [$itrp eval info vars]
     }
     
