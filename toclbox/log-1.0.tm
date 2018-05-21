@@ -11,6 +11,7 @@ namespace eval ::toclbox::log {
         variable dbgfd    stderr
         variable unknown  --U-N-K-N-O-W-N--
         variable version  [lindex [split [file rootname [file tail [info script]]] -] end]
+        variable ignore   [list]
     }
     namespace export {[a-z]*}
     namespace ensemble create -command ::tocllog
@@ -18,7 +19,25 @@ namespace eval ::toclbox::log {
 }
 
 
-proc ::toclbox::log::format { lvl pkg output } {
+# ::toclbox::log::format -- Format log line
+#
+#      Format a log entry to a line using the current specified header, which
+#      includes formatting the data and time passed as an argument. When the
+#      date/time is emoty, this will be considered as "now", i.e. the current
+#      date and time at the host.
+#
+# Arguments:
+#      lvl      Level of the log entry
+#      pkg      Name of the package at which the entry is happening
+#      output   Message
+#      now      Number of seconds since the epoch for the entry, empty for now
+#
+# Results:
+#      Formatted log entry, ready for output
+#
+# Side Effects:
+#      None.
+proc ::toclbox::log::format { lvl pkg output {now ""}} {
     # Convert to integer
     set lvl [Level $lvl]
     # Convert to existing and known human-readable level if possible.
@@ -32,10 +51,34 @@ proc ::toclbox::log::format { lvl pkg output } {
     # Map known dynamic variables
     set hdr [string map [mapper "" pkg $pkg lvl $lvl] ${vars::-header}]
     # Relay clock formatting routines.
-    set hdr [clock format [clock seconds] -format $hdr]
+    if { $now eq "" } {
+        set now [clock seconds]
+    }
+    set hdr [clock format $now -format $hdr]
     
     # Concat and return
     return ${hdr}${output}
+}
+
+
+# ::toclbox::log::silencer -- Silences log lines
+#
+#      Register patterns matching lines and/or packages that will be silenced
+#      from the log output. In most cases, this is not a good idea, but the
+#      feature can be used to removed annoying repeating messages that are known
+#      to occur in a given context.
+#
+# Arguments:
+#      ptn      Pattern matching the line
+#      pkg      Pattern matchint the package name (defaults to all, e.g. *)
+#
+# Results:
+#      None.
+#
+# Side Effects:
+#      Matching lines from matching packages will be ignored from now on.
+proc ::toclbox::log::silencer { ptn { pkg * } } {
+    lappend vars::ignore $pkg $ptn
 }
 
 
@@ -66,7 +109,7 @@ proc ::toclbox::log::debug { lvl output { pkg "" } } {
     
     foreach { ptn verbosity } ${vars::-verbose} {
         if { [string match $ptn $pkg] } {
-            if {[Level $verbosity] >= $lvl } {
+            if {[Level $verbosity] >= $lvl && ![Ignore? $output $pkg] } {
                 if { [string index $vars::dbgfd 0] eq "@" } {
                     set cmd [string range $vars::dbgfd 1 end]
                     if { [catch {eval [linsert $cmd end $lvl $pkg $output]} err] } {
@@ -127,17 +170,17 @@ proc ::toclbox::log::hijack {} {
                         set service [string range $spec [expr {$underscore+1}] end]
                         # Convert between logging levels of the two modules.
                         set l [string map [list debug DEBUG \
-                                                info INFO \
-                                                notice NOTICE \
-                                                warn WARN \
-                                                error ERROR \
-                                                critical CRITICAL \
-                                                alert CRITICAL \
-                                                emergency CRITICAL] [string tolower $lvl]]
+                                info INFO \
+                                notice NOTICE \
+                                warn WARN \
+                                error ERROR \
+                                critical CRITICAL \
+                                alert CRITICAL \
+                                emergency CRITICAL] [string tolower $lvl]]
                         # Should we uplevel here?
                         [namespace parent]::debug $l $txt $service
                     }
-
+                    
                     ${log}::logproc $l [namespace current]::hijack::${l}_$s
                 }
                 lappend hijacked $s
@@ -146,7 +189,7 @@ proc ::toclbox::log::hijack {} {
     } else {
         debug WARN "Cannot hijack tcllib logger module, make sure package is present!"
     }
-
+    
     return $hijacked
 }
 
@@ -260,4 +303,28 @@ proc ::toclbox::log::Level { lvl } {
 }
 
 
+# ::toclbox::log::Ignore? -- Ignore log entry?
+#
+#      Should a given log entry be ignored?
+#
+# Arguments:
+#      output   Current message in entry
+#      pkg      Name of package where the message originates from
+#
+# Results:
+#      1 if the entry should be silenced and ignored, 0 otherwise.
+#
+# Side Effects:
+#      None.
+proc ::toclbox::log::Ignore? { output pkg } {
+    foreach { pkg_ptn msg_ptn } $vars::ignore {
+        if { [string match $pkg_ptn $pkg] && [string match $msg_ptn $output] } {
+            return 1
+        }
+    }
+    return 0
+}
+
 package provide toclbox::log $::toclbox::log::vars::version
+
+
