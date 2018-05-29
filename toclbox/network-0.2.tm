@@ -112,6 +112,7 @@ proc ::toclbox::network::SecureSocket { args } {
     set opts [lrange $args 0 end-2]
     set host [lindex $args end-1]
     set port [lindex $args end]
+    debug DEBUG "Opening TLS socket to ${host}:${port}"
     return [::tls::socket -servername $host {*}$opts $host $port]
 }
 
