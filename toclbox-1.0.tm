@@ -3,7 +3,8 @@ package require Tcl 8.5
 namespace eval ::toclbox {}
 
 # Require all packages that are only 8.5 dependent.
-foreach pkg [list config control log options text network url safe island firewall templater] {
+foreach pkg [list config control log options text network url \
+                    safe island firewall interp templater] {
     package require toclbox::$pkg
 }
 
