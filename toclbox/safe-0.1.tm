@@ -135,26 +135,36 @@ proc ::toclbox::safe::envset { slave varname {value ""} {glbl env}} {
 }
 
 proc ::toclbox::safe::package { slave pkg { version ""} } {
+    set pver [expr {$version eq "" ? $pkg : "${pkg}:${version}"}]
     if { [$slave issafe] } {
-        debug NOTICE "Loading $pkg into safe slave"
-        set cmds [LoadCommand $pkg $version]
-        foreach l [split $cmds ";\r\n"] {
-            switch -- [lindex $l 0] {
-                "source" {
-                    debug INFO "Sourcing [lindex $l end] to bring in package $pkg"
-                    eval [linsert $l 0 $slave invokehidden -global --]
+        if { [catch {::safe::interpConfigure $slave} res] } {
+            debug NOTICE "Loading $pver into safe slave"
+            set cmds [LoadCommand $pkg $version]
+            foreach l [split $cmds ";\r\n"] {
+                switch -- [lindex $l 0] {
+                    "source" {
+                        debug INFO "Sourcing [lindex $l end] to bring in package $pkg"
+                        eval [linsert $l 0 $slave invokehidden -global --]
+                    }
+                    "load" {
+                        debug INFO "Loading binary [lindex $l end] to bring in package $pkg"
+                        eval [linsert $l 0 $slave invokehidden -global --]
+                    }
+                    default {
+                        $slave eval $l
+                    }
                 }
-                "load" {
-                    debug INFO "Loading binary [lindex $l end] to bring in package $pkg"
-                    eval [linsert $l 0 $slave invokehidden -global --]
-                }
-                default {
-                    $slave eval $l
-                }
+            }
+        } else {
+            debug NOTICE "Loading $pver into Safe-Tcl slave"
+            if { $version ne "" } {
+                $slave eval package require $pkg $version
+            } else {
+                $slave eval package require $pkg
             }
         }
     } else {
-        debug NOTICE "Loading $pkg into regular slave"
+        debug NOTICE "Loading $pver into regular slave"
         if { $version ne "" } {
             $slave eval package require $pkg $version
         } else {
