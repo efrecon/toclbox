@@ -34,7 +34,7 @@ proc ::toclbox::interp::create { fpath args } {
                 # directories
                 ::toclbox::island::add $slave $value
             }
-            "al*" {
+            "all*" {
                 # -allow enables access to remote servers
                 lassign [split $value :] host port
                 ::toclbox::firewall::allow $slave $host $port
@@ -44,7 +44,7 @@ proc ::toclbox::interp::create { fpath args } {
                 lassign [split $value :] host port
                 ::toclbox::firewall::deny $slave $host $port
             }
-            "p*" {
+            "pac*" {
                 # -package arranges for the plugin to be able to
                 # access a given package.
                 set version ""
@@ -61,6 +61,30 @@ proc ::toclbox::interp::create { fpath args } {
                     }
                 }
                 ::toclbox::safe::package $slave $pkg $version
+            }
+            "ali*" {
+                if { [llength $value] >= 2 } {
+                    debug notice "Aliasing [lindex $value 0] to [lrange $value 1 end]"
+                    eval [linsert $value 0 ::toclbox::safe::alias $slave]
+                } else {
+                    debug warn "No source or destination command to alias (or both)!"
+                }
+            }
+            "pat*" {
+                debug notice "Adding $value to package access directories"
+                if { $safe >= 0 } {
+                    ::safe::interpAddToAccessPath $slave $value
+                } else {
+                    $slave eval lappend auto_path $value
+                }
+            }
+            "m*" {
+                debug notice "Adding $value to module access directories"
+                if { $safe >= 0 } {
+                    ::safe::interpAddToAccessPath $slave $value
+                } else {
+                    $slave eval ::tcl::tm::path add $value
+                }
             }
             "e*" {
                 # -environement to pass/set environment variables.
