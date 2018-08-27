@@ -133,7 +133,7 @@ proc ::toclbox::options::pull {_argv _opts} {
                 set next [string index [lindex $argv [expr {$i+1}]] 0]
                 if { $next eq ${vars::-marker} } {
                     incr i
-                } elseif { $next eq "" } {
+                } elseif { $i+1 >= [llength $argv] } {
                     set opts $argv
                     set argv [list]
                     return
