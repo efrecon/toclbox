@@ -59,6 +59,13 @@ test island-4.1 {Testing file size} -body {
 } -result {1}
 
 
+test island-4.2 {Testing forbidden file size} -match glob -body {
+    set i [interp create -safe]
+    ::toclbox::island::add $i [info script]
+    expr {[$i eval file size [file join [file dirname [info script]] common.test]]>0}
+} -result {*Access to *common.test denied*} -returnCodes 1
+
+
 test island-5.1 {Testing creation of directory} -setup {
     set chars [split {abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789} ""]
     set fname "__test"
