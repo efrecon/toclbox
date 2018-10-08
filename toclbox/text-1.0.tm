@@ -10,6 +10,7 @@ namespace eval ::toclbox::text {
         variable -separator   {/ |}
         variable -ellipsis    "(..)"
         variable -offload     "@"
+        variable -command     "!"
         variable version       [lindex [split [file rootname [file tail [info script]]] -] end]
     }
     namespace export {[a-z]*}
@@ -70,9 +71,16 @@ proc ::toclbox::text::offload { varname {divider -1} {type "file"} {keys {}} } {
 	if { [string first ${vars::-offload} $var] == 0 } {
 		set fname [string trim [string range $var [string length ${vars::-offload}] end]]
 		set fname [resolve $fname $keys]
+        debug INFO "Acquiring content of $varname from $fname"
 		set var [[namespace parent]::config::read $fname $divider $type]
 		return $fname
-	}
+	} elseif { [string first ${vars::-command} $var] == 0 } {
+        set cmd [string trim [string range $var [string length ${vars::-command}] end]]
+        set cmd [resolve $cmd $keys]
+        debug INFO "Executing '$cmd' to resolve content of $varname"
+        set var [exec -ignorestderr -- {*}$cmd]
+        return $cmd
+    }
 	return ""
 }
 
