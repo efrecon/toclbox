@@ -4,7 +4,7 @@ package require toclbox::log
 package require toclbox::safe
 package require toclbox::island
 package require toclbox::firewall
-
+package require toclbox::text
 
 
 namespace eval ::toclbox::interp {
@@ -92,6 +92,7 @@ proc ::toclbox::interp::create { fpath args } {
                 if { $equal >= 0 } {
                     set varname [string trim [string range $value 0 [expr {$equal-1}]]]
                     set value [string trim [string range $value [expr {$equal+1}] end]]
+                    ::toclbox::text::offload value
                     ::toclbox::safe::envset $slave $varname $value
                 } else {
                     ::toclbox::safe::environment $slave $value
