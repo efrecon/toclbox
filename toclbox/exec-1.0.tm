@@ -200,7 +200,16 @@ proc ::toclbox::exec::armor { args } {
     if { ! $vars::renamed } {
         rename ::exec [namespace current]::ExecOrig
         proc ::exec { args } {
-            ::toclbox::exec::ArmorCheck {*}$args
+            # Cope with sindle-dash flags at start of command, including the
+            # catch-all double-dash as a perfect marker to separate flags from
+            # command.
+            set ddash [lsearch -exact $args "--"]
+            if { $ddash >= 0 } {
+                ::toclbox::exec::ArmorCheck {*}[lrange $args [expr ${ddash+1}] end]
+            } else {
+                set nodash [lsearch -glob -not $args -*]
+                ::toclbox::exec::ArmorCheck {*}[lrange $args $nodash end]
+            }
             return [::toclbox::exec::ExecOrig {*}$args]
         }
         
