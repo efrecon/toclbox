@@ -205,7 +205,7 @@ proc ::toclbox::exec::armor { args } {
             # command.
             set ddash [lsearch -exact $args "--"]
             if { $ddash >= 0 } {
-                ::toclbox::exec::ArmorCheck {*}[lrange $args [expr ${ddash+1}] end]
+                ::toclbox::exec::ArmorCheck {*}[lrange $args [expr {$ddash+1}] end]
             } else {
                 set nodash [lsearch -glob -not $args -*]
                 ::toclbox::exec::ArmorCheck {*}[lrange $args $nodash end]
