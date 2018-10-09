@@ -60,6 +60,7 @@ if { [catch {package require Tcl 8.6} ver] == 0 } {
     }
     
     ::toclbox::control::alias ::toclbox::exec ::toclbox::exec::run 1
+    ::toclbox::control::alias ::toclbox::apparmor ::toclbox::exec::armor 1
     ::toclbox::control::alias ::toclbox::running ::toclbox::exec::running 1
     
     ::toclbox::control::alias ::toclbox::processes ::toclbox::sys::processes 1
