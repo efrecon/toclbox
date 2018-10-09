@@ -3,13 +3,17 @@ package require platform
 
 package require toclbox::log
 package require toclbox::options
+package require toclbox::config
+package require toclbox::control
 
 namespace eval ::toclbox::exec {
     namespace eval command {};  # This will host all commands information
     namespace eval vars {
         variable -bufsize   16384
-        variable signalling 0; # Forward signals (need Tclx see require below)
+        variable signalling 0;  # Forward signals (need Tclx see require below)
         variable generator  0;  # Generator for identifiers, own implementation to keep order
+        variable armor      {}; # AppArmor bin execution restrictions
+        variable renamed    0;  # Hijacked open/exec calls?
         variable version    [lindex [split [file rootname [file tail [info script]]] -] end]
     }
     namespace export {[a-z]*}
@@ -174,6 +178,88 @@ proc ::toclbox::exec::Done { c } {
     # Total cleanup
     unset $c
     return $res
+}
+
+
+proc ::toclbox::exec::armor { args } {
+    if { [llength $args] == 1 } {
+        return [apparmor {*}[concat [[namespace parent]::config::read [lindex $args 0] -1 "rules"]]]
+    }
+
+    foreach {k v} $args {
+        set k [string trimleft $k -]
+        switch -glob -nocase -- $k {
+            "a*" { lappend vars::armor -allow $v }
+            "d*" { lappend vars::armor -deny $v }
+            default {
+                debug WARN "$k is not a known filter, should be -allow or -deny"
+            }
+        }
+    }
+
+    if { ! $vars::renamed } {
+        rename ::exec [namespace current]::ExecOrig
+        proc ::exec { args } {
+            ::toclbox::exec::ArmorCheck {*}$args
+            return [::toclbox::exec::ExecOrig {*}$args]
+        }
+        
+        rename ::open [namespace current]::OpenOrig
+        proc ::open { args } {
+            if { [string index [lindex $args 0] 0] eq "|" } { 
+                ::toclbox::exec::ArmorCheck {*}[lindex $args 0]
+            }
+            return [::toclbox::exec::OpenOrig {*}$args]
+        }
+        set vars::renamed 1
+    }
+
+    return $vars::armor
+}
+
+
+proc ::toclbox::exec::ArmorCheck { args } {
+    # Extract binaries being called from argument list into list called bins.
+    set bins [list]
+    if { [string index [lindex $args 0] 0] eq "|" } {
+        lappend bins [string range [lindex $args 0] 1 end]
+    } elseif { [lindex $args 0] ne "|" } {
+        lappend bins [lindex $args 0]
+    }
+
+    foreach i [lsearch -exact -all $args "|"] {
+        lappend bins [lindex $args [expr {$i+1}]]
+    }
+    debug TRACE "Extracted [join $bins , ] from pipeline"
+
+    # Resolve binaries to their real location on disk and check each in turn if
+    # they are allowed by the filters.
+    foreach bin $bins {
+        # Resolve, including last link
+        set rbin [auto_execok $bin]
+        if { $rbin eq "" } {
+            return -code error "Resolved $bin to empty binary, access forbidden by apparmor"
+        }
+
+        set allowed 0
+        foreach {k v} $vars::armor {
+            if { $k eq "-allow" && [string match $v $rbin] } {
+                set allowed 1; break
+            }
+        }
+
+        if { $allowed } {
+            foreach {k v} $vars::armor {
+                if { $k eq "-deny" && [string match $v $rbin] } {
+                    set allowed 0; break
+                }
+            }
+        }
+
+        if { !$allowed } {
+            return -code error "Resolved binary at $rbin is forbidden to access by apparmor"
+        }
+    }
 }
 
 
