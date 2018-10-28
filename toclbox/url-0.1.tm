@@ -222,6 +222,22 @@ proc ::toclbox::url::join { args } {
 }
 
 
+proc ::toclbox::url::obfuscate { url } {
+    set idx [string first "://" $url]
+    if { $idx >= 0 } {
+        set slash [string first "/" $url [expr {$idx+3}]]
+        set arobas [string first "@" $url $idx]
+        if { $arobas >= 0 && ( $arobas < $slash || $slash < 0 ) } {
+            set colon [string last ":" $url $arobas]
+            if { $colon >= 0 && $colon > $idx } {
+                return [string replace $url [expr {$colon+1}] [expr {$arobas-1}] [string repeat "*" [expr {$arobas-$colon-1}]]]
+            }
+        }
+    }
+    return $url
+}
+
+
 # ::toclbox::url::Init -- Initialise mapping
 #
 #       Initialises the map that will be used to convert non-alphanumeric
