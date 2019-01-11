@@ -98,6 +98,14 @@ proc ::toclbox::interp::create { fpath args } {
                     ::toclbox::safe::environment $slave $value
                 }
             }
+            "s*" {
+                debug notice "Sourcing content of $value"
+                if { $safe >= 0 } {
+                    $slave invokehidden source $value
+                } else {
+                    $slave eval source $value
+                }
+            }
         }
     }
 
