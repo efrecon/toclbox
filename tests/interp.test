@@ -1,0 +1,36 @@
+if {"::tcltest" ni [namespace children]} {
+    package require tcltest 2
+    namespace import -force ::tcltest::*
+}
+
+::tcl::tm::path add [file normalize [file join [file dirname [info script]] ..]]
+package require toclbox::interp
+package require toclbox::log
+
+toclbox::log::verbosity interp 0
+
+test interp-1.1 {Safe Creation} -body {
+    set fname [file normalize [file join [file dirname [info script]] interp_test.tcl]]
+    set i [::toclbox::interp::create $fname -safe]
+    return [expr {[lsearch [::safe::interpConfigure $i] -accessPath]>=0}]
+} -result 1
+
+test interp-1.2 {Regular Creation} -body {
+    set fname [file normalize [file join [file dirname [info script]] interp_test.tcl]]
+    set i [::toclbox::interp::create $fname]
+    return [interp issafe $i]
+} -result 0
+
+test interp-2.1 {Safe HTTP loading} -body {
+    set fname [file normalize [file join [file dirname [info script]] interp_test.tcl]]
+    set i [::toclbox::interp::create $fname -safe -package http]
+    return [expr {[package vcompare [$i eval http_version] 1.0]>0}]
+} -result 1
+
+test interp-2.1 {Regular HTTP loading} -body {
+    set fname [file normalize [file join [file dirname [info script]] interp_test.tcl]]
+    set i [::toclbox::interp::create $fname -package http]
+    return [expr {[package vcompare [$i eval http_version] 1.0]>0}]
+} -result 1
+
+cleanupTests
