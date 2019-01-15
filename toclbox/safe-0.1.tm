@@ -260,18 +260,17 @@ proc ::toclbox::safe::LoadCommand {name {version ""}} {
             error "Could not find package $name"
         }
     }
+
+    # Pick latest version when none specified.
     if { $version eq "" } {
-        set latest ""
         foreach v $versions {
-            if { $latest eq "" || [package vcompare $v $latest] > 0 } {
-                set latest $v
+            if { $version eq "" || [::package vcompare $v $version] > 0 } {
+                set version $v
             }
         }
-        debug DEBUG "Amongst $versions, latest version for $name is $latest"
-        return [::package ifneeded $name $latest
-    } else {
-        return [::package ifneeded $name $version]
+        debug DEBUG "Amongst $versions, latest version for $name is $version"
     }
+    return [::package ifneeded $name $version]
 }
 
 package provide toclbox::safe $::toclbox::safe::vars::version
