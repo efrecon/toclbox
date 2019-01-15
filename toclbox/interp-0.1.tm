@@ -12,6 +12,8 @@ namespace eval ::toclbox::interp {
     namespace eval vars {
         variable version       [lindex [split [file rootname [file tail [info script]]] -] end]
         variable captured      0;  # Log captured
+        variable logger        {}; # Existing log command.
+        variable interps       {}; # List of created interpreters.
     }
     namespace import [namespace parent]::log::debug
 }
@@ -22,12 +24,19 @@ proc ::toclbox::interp::create { fpath args } {
     if { $safe >= 0 } {
         set args [lreplace $args $safe $safe]
         set slave [::safe::interpCreate]
-        if { ! $vars::captured && [::safe::setLogCmd] eq {} } {
-            debug NOTICE "Capturing low-level SafeTcl logs"
+        lappend vars::interps $slave
+        if { ! $vars::captured } {
+            debug INFO "Capturing low-level SafeTcl logs in TRACEs"
+            # Remember existing command, if any, and register our own command
+            # for log output. Our command will arrange to try tracing output for
+            # interpreters that we have created.
+            set vars::logger [::safe::setLogCmd]
             ::safe::setLogCmd [namespace current]::Log
+            set vars::captured 1
         }
     } else {
         set slave [interp create]
+        lappend vars::interps $slave
     }
 
     # Parse options and relay those into calls to island and/or
@@ -122,12 +131,16 @@ proc ::toclbox::interp::create { fpath args } {
             if { [catch {$slave invokehidden source $fpath} res] } {
                 debug error "Cannot load plugin at $fpath: $res"
                 interp delete $slave
+                set idx [lsearch $vars::interps $slave]
+                set vars::interps [lreplace $vars::interps $idx $idx]
                 set slave ""
             }
         } else {
             if { [catch {$slave eval source $fpath} res] } {
                 debug error "Cannot load plugin at $fpath: $res"
                 interp delete $slave
+                set idx [lsearch $vars::interps $slave]
+                set vars::interps [lreplace $vars::interps $idx $idx]
                 set slave ""
             }
         }
@@ -138,8 +151,23 @@ proc ::toclbox::interp::create { fpath args } {
 
 
 proc ::toclbox::interp::Log { evt } {
-    # Pass further event in debugging mode
-    debug DEBUG $evt
+    # Pass further event in debugging mode only if it seems to be one of our
+    # interpreters, e.g. its name is contained in the header, i.e. everything up
+    # to the first : sign in the event.
+    set idx [string first ":" $evt]
+    if { $idx >= 0 } {
+        set header [string range $evt 0 $idx]
+        foreach i $vars::interps {
+            if { [string first $i $header] >= 0 } {
+                debug TRACE $evt
+            }
+        }
+    }
+
+    # Call existing logging command if any.
+    if { [llength $vars::logger] } {
+        return [eval [linsert $vars::logger end $evt]]
+    }
 }
 
 package provide toclbox::iinterp $::toclbox::interp::vars::version
