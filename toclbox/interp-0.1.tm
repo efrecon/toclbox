@@ -10,7 +10,8 @@ package require toclbox::text
 namespace eval ::toclbox::interp {
     namespace export {[a-z]*};   # Convention: export all lowercase 
     namespace eval vars {
-        variable version       [lindex [split [file rootname [file tail [info script]]] -] end]        
+        variable version       [lindex [split [file rootname [file tail [info script]]] -] end]
+        variable captured      0;  # Log captured
     }
     namespace import [namespace parent]::log::debug
 }
@@ -21,6 +22,10 @@ proc ::toclbox::interp::create { fpath args } {
     if { $safe >= 0 } {
         set args [lreplace $args $safe $safe]
         set slave [::safe::interpCreate]
+        if { ! $vars::captured && [::safe::setLogCmd] eq {} } {
+            debug NOTICE "Capturing low-level SafeTcl logs"
+            ::safe::setLogCmd [namespace current]::Log
+        }
     } else {
         set slave [interp create]
     }
@@ -55,9 +60,11 @@ proc ::toclbox::interp::create { fpath args } {
                 }
                 switch -- $pkg {
                     "http" {
-                        debug debug "Helping out package $pkg"
-                        ::toclbox::safe::environment $slave * "" tcl_platform
-                        ::toclbox::safe::alias $slave encoding ::toclbox::safe::invoke $slave encoding
+                        if { $safe >= 0 } {
+                            debug debug "Helping out package $pkg"
+                            ::toclbox::safe::environment $slave * "" tcl_platform
+                            ::toclbox::safe::alias $slave encoding ::toclbox::safe::invoke $slave encoding
+                        }
                     }
                 }
                 ::toclbox::safe::package $slave $pkg $version
@@ -127,6 +134,12 @@ proc ::toclbox::interp::create { fpath args } {
     }
 
     return $slave
+}
+
+
+proc ::toclbox::interp::Log { evt } {
+    # Pass further event in debugging mode
+    debug DEBUG $evt
 }
 
 package provide toclbox::iinterp $::toclbox::interp::vars::version
