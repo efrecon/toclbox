@@ -77,4 +77,37 @@ test safe-6.1 {Accessing package} -body {
     return [expr {[llength [$i eval info commands ::http::*]]>0}]
 } -result 1
 
+test safe-6.2 {Accessing package} -body {
+    set i [::safe::interpCreate]
+    # http package needs access to tcl_platform (for user-agent) and to
+    # encoding, give them away...
+    ::toclbox::safe::environment $i * "" tcl_platform
+    ::toclbox::safe::alias $i encoding ::toclbox::safe::invoke $i encoding
+    ::toclbox::safe::package $i http
+    return [expr {[llength [$i eval info commands ::http::*]]>0}]
+} -result 1
+
+test safe-7.1 {Modern HTTP version} -body {
+    set i [interp create -safe]
+    # http package needs access to tcl_platform (for user-agent) and to
+    # encoding, give them away...
+    ::toclbox::safe::environment $i * "" tcl_platform
+    ::toclbox::safe::alias $i encoding ::toclbox::safe::invoke $i encoding
+    ::toclbox::safe::package $i http
+    set ver [$i eval package require http]
+    return [expr {[package vcompare $ver 1.0]>0}]
+} -result 1
+
+
+test safe-7.2 {Modern HTTP version} -body {
+    set i [::safe::interpCreate]
+    # http package needs access to tcl_platform (for user-agent) and to
+    # encoding, give them away...
+    ::toclbox::safe::environment $i * "" tcl_platform
+    ::toclbox::safe::alias $i encoding ::toclbox::safe::invoke $i encoding
+    ::toclbox::safe::package $i http
+    set ver [$i eval package require http]
+    return [expr {[package vcompare $ver 1.0]>0}]
+} -result 1
+
 cleanupTests
