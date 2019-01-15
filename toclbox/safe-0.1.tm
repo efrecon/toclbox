@@ -1,5 +1,5 @@
 ##################
-## Module Name     --  island.tcl
+## Module Name     --  safe.tcl
 ## Original Author --  Emmanuel Frecon - emmanuel.frecon@myjoice.com
 ## Description:
 ##
@@ -261,7 +261,14 @@ proc ::toclbox::safe::LoadCommand {name {version ""}} {
         }
     }
     if { $version eq "" } {
-        return [::package ifneeded $name [lindex $versions 0]]
+        set latest ""
+        foreach v $versions {
+            if { $latest eq "" || [package vcompare $v $latest] > 0 } {
+                set latest $v
+            }
+        }
+        debug DEBUG "Amongst $versions, latest version for $name is $latest"
+        return [::package ifneeded $name $latest
     } else {
         return [::package ifneeded $name $version]
     }
