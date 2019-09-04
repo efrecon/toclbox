@@ -18,7 +18,8 @@ namespace eval ::toclbox::firewall {
     namespace eval interps {};   # Will host information for interpreters
     namespace export {[a-z]*};   # Convention: export all lowercase
     namespace eval vars {
-        variable version       [lindex [split [file rootname [file tail [info script]]] -] end]        
+        variable -commands     {socket fconfigure encoding}
+        variable version       [lindex [split [file rootname [file tail [info script]]] -] end]
     }
     namespace import [namespace parent]::log::debug
     namespace import \
@@ -100,7 +101,7 @@ proc ::toclbox::firewall::deny { slave { host "*" } {port *} } {
 # Side Effects:
 #       None.
 proc ::toclbox::firewall::reset { slave } {
-    foreach cmd [list socket fconfigure encoding] {
+    foreach cmd ${vars::-commands} {
         unalias $slave $cmd
     }
 }
@@ -232,9 +233,17 @@ proc ::toclbox::firewall::Socket { slave args } {
 # Side Effects:
 #       None.
 proc ::toclbox::firewall::Init { slave } {
-    alias $slave socket [namespace current]::Socket $slave
-    alias $slave fconfigure [namespace current]::invoke $slave fconfigure
-    alias $slave encoding [namespace current]::invoke $slave encoding
+    foreach cmd ${vars::-commands} {
+        if { [lsearch [$slave hidden] $cmd] < 0 } {
+            $slave hide $cmd
+        }
+
+        if { $cmd eq "socket" } {
+            alias $slave $cmd [namespace current]::Socket $slave
+        } else {
+            alias $slave $cmd [namespace current]::invoke $slave $cmd
+        }
+    }
 }
 
 
