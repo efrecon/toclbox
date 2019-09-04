@@ -27,10 +27,25 @@ test interp-2.1 {Safe HTTP loading} -body {
     return [expr {[package vcompare [$i eval http_version] 1.0]>0}]
 } -result 1
 
-test interp-2.1 {Regular HTTP loading} -body {
+test interp-2.2 {Regular HTTP loading} -body {
     set fname [file normalize [file join [file dirname [info script]] interp_test.tcl]]
     set i [::toclbox::interp::create $fname -package http]
     return [expr {[package vcompare [$i eval http_version] 1.0]>0}]
 } -result 1
+
+test interp-3.1 {Safe HTTP request} -body {
+    set fname [file normalize [file join [file dirname [info script]] interp_test.tcl]]
+    set i [::toclbox::interp::create $fname -safe -allow *.ubuntu.com:80 -package http]
+    set ncode [$i eval http_get http://connectivity-check.ubuntu.com/]
+    return [expr {$ncode >= 200 && $ncode < 300}]
+} -result 1
+
+test interp-3.2 {Regular HTTP request} -body {
+    set fname [file normalize [file join [file dirname [info script]] interp_test.tcl]]
+    set i [::toclbox::interp::create $fname -allow *.ubuntu.com:80 -package http]
+    set ncode [$i eval http_get http://connectivity-check.ubuntu.com/]
+    return [expr {$ncode >= 200 && $ncode < 300}]
+} -result 1
+
 
 cleanupTests
