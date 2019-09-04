@@ -158,18 +158,20 @@ proc ::toclbox::safe::package { slave pkg { version ""} } {
         } else {
             debug NOTICE "Loading $pver into Safe-Tcl slave"
             if { $version ne "" } {
-                $slave eval package require $pkg $version
+                set ver [$slave eval package require $pkg $version]
             } else {
-                $slave eval package require $pkg
+                set ver [$slave eval package require $pkg]
             }
+            debug DEBUG "Loaded $pkg at version $ver"
         }
     } else {
         debug NOTICE "Loading $pver into regular slave"
         if { $version ne "" } {
-            $slave eval package require $pkg $version
+            set ver [$slave eval package require $pkg $version]
         } else {
-            $slave eval package require $pkg
+            set ver [$slave eval package require $pkg]
         }
+        debug DEBUG "Loaded $pkg at version $ver"
     }
 }
 
@@ -219,7 +221,7 @@ proc ::toclbox::safe::Context { slave } {
     if { $origin eq "" } {
         return -code error "Cannot find origin caller"
     }
-    
+
     return [namespace current]::interps::[string map {: _} [namespace qualifiers $origin]]__[string map {: _} $slave]
 }
 
