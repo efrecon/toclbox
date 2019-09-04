@@ -8,7 +8,7 @@ package require toclbox::text
 
 
 namespace eval ::toclbox::interp {
-    namespace export {[a-z]*};   # Convention: export all lowercase 
+    namespace export {[a-z]*};   # Convention: export all lowercase
     namespace eval vars {
         variable version       [lindex [split [file rootname [file tail [info script]]] -] end]
         variable captured      0;  # Log captured
@@ -62,8 +62,9 @@ proc ::toclbox::interp::create { fpath args } {
                 # -package arranges for the plugin to be able to
                 # access a given package.
                 set version ""
-                if { [regexp {:(\d+(\.\d+)*)} $value - version] } {
-                    set pkg [regsub {:(\d+(\.\d+)*)} $value ""]
+                set rx_ver {:(\d+(\.\d+)*)}
+                if { [regexp $rx_ver $value - version] } {
+                    set pkg [regsub $rx_ver $value ""]
                 } else {
                     set pkg $value
                 }
